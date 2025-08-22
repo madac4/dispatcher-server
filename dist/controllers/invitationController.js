@@ -22,7 +22,7 @@ exports.createInvitation = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res,
         email,
         used: false,
         expiresAt: {
-            $gt: Date.now(),
+            $gt: new Date(),
         },
     });
     if (existingInvitation) {

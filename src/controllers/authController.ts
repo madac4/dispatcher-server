@@ -36,15 +36,27 @@ export const register = CatchAsyncErrors(
 			)
 		}
 
+		const emailInvitation = await Invitation.findOne({
+			email,
+		})
+
+		if (!emailInvitation) {
+			return next(
+				new ErrorHandler(
+					'You do not have an invitation on this email',
+					400,
+				),
+			)
+		}
+
 		const invitation = await Invitation.findOne({
 			code: inviteCode,
 			email,
 			used: false,
 		})
 
-		if (!invitation) {
+		if (!invitation)
 			return next(new ErrorHandler('Invalid or expired invite code', 400))
-		}
 
 		if (invitation.expiresAt < new Date()) {
 			return next(new ErrorHandler('Invite code has expired', 400))
@@ -70,7 +82,9 @@ export const register = CatchAsyncErrors(
 		invitation.used = true
 		await invitation.save()
 
-		res.status(201).json({ message: 'User registered successfully' })
+		res.status(201).json(
+			SuccessResponse(null, 'User registered successfully'),
+		)
 	},
 )
 

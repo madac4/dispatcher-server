@@ -22,7 +22,7 @@ export const createInvitation = CatchAsyncErrors(
 			email,
 			used: false,
 			expiresAt: {
-				$gt: Date.now(),
+				$gt: new Date(),
 			},
 		})
 

@@ -24,14 +24,19 @@ exports.register = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) =
     if (!email || !password) {
         return next(new ErrorHandler_1.ErrorHandler('Email and password are required', 400));
     }
+    const emailInvitation = await invitation_model_1.default.findOne({
+        email,
+    });
+    if (!emailInvitation) {
+        return next(new ErrorHandler_1.ErrorHandler('You do not have an invitation on this email', 400));
+    }
     const invitation = await invitation_model_1.default.findOne({
         code: inviteCode,
         email,
         used: false,
     });
-    if (!invitation) {
+    if (!invitation)
         return next(new ErrorHandler_1.ErrorHandler('Invalid or expired invite code', 400));
-    }
     if (invitation.expiresAt < new Date()) {
         return next(new ErrorHandler_1.ErrorHandler('Invite code has expired', 400));
     }
@@ -50,7 +55,7 @@ exports.register = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) =
     });
     invitation.used = true;
     await invitation.save();
-    res.status(201).json({ message: 'User registered successfully' });
+    res.status(201).json((0, response_types_1.SuccessResponse)(null, 'User registered successfully'));
 });
 exports.login = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const { email, password } = req.body;
