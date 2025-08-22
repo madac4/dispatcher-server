@@ -117,6 +117,7 @@ exports.forgotPassword = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, n
     try {
         const html = await (0, renderEmail_1.default)('forgotPasswordEmail', {
             resetToken,
+            frontendOrigin: process.env.FRONTEND_ORIGIN,
         });
         await nodemailer_1.default.sendMail({
             from: `Dhruv <${process.env.EMAIL_USER}>`,

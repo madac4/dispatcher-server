@@ -10,6 +10,7 @@ const invitation_model_1 = __importDefault(require("../models/invitation.model")
 const team_model_1 = __importDefault(require("../models/team.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const auth_types_1 = require("../types/auth.types");
+const response_types_1 = require("../types/response.types");
 const ErrorHandler_1 = require("../utils/ErrorHandler");
 const renderEmail_1 = __importDefault(require("../utils/renderEmail"));
 exports.createInvitation = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
@@ -54,6 +55,7 @@ exports.createInvitation = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res,
         const html = await (0, renderEmail_1.default)('invitationEmail', {
             inviteCode,
             expiresAt,
+            frontendOrigin: process.env.FRONTEND_ORIGIN,
         });
         await nodemailer_1.default.sendMail({
             from: `Dhruv <${process.env.EMAIL_USER}>`,
@@ -67,11 +69,7 @@ exports.createInvitation = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res,
         await invitation.deleteOne();
         return next(new ErrorHandler_1.ErrorHandler('Failed to send invitation email', 500));
     }
-    console.log(`Invite code for ${email}: ${inviteCode}`);
-    res.status(201).json({
-        message: 'Invitation created successfully',
-        invitation,
-    });
+    res.status(201).json((0, response_types_1.SuccessResponse)(null, `Invitation sent to ${email}`));
 });
 exports.removeInvitation = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const { inviteId } = req.params;

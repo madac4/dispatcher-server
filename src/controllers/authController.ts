@@ -183,6 +183,7 @@ export const forgotPassword = CatchAsyncErrors(
 		try {
 			const html = await renderEmail('forgotPasswordEmail', {
 				resetToken,
+				frontendOrigin: process.env.FRONTEND_ORIGIN,
 			})
 			await transporter.sendMail({
 				from: `Dhruv <${process.env.EMAIL_USER}>`,
