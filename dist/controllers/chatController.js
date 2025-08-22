@@ -7,6 +7,7 @@ exports.getUnreadCount = exports.deleteMessage = exports.markMessagesAsRead = ex
 const chatMessage_model_1 = __importDefault(require("../models/chatMessage.model"));
 const order_model_1 = __importDefault(require("../models/order.model"));
 const orderChat_model_1 = __importDefault(require("../models/orderChat.model"));
+const socket_service_1 = require("../services/socket.service");
 const response_types_1 = require("../types/response.types");
 const ErrorHandler_1 = require("../utils/ErrorHandler");
 // Send a message to an order chat
@@ -16,7 +17,7 @@ const sendMessage = async (req, res, next) => {
         if (!userId)
             return next(new ErrorHandler_1.ErrorHandler('User not authenticated', 401));
         const messageData = req.body;
-        const { orderId, message, messageType = 'text', senderType = 'user', attachments = [] } = messageData;
+        const { orderId, message, messageType = 'text', senderType = 'user', attachments = [], } = messageData;
         // Validate required fields
         if (!orderId || !message) {
             return next(new ErrorHandler_1.ErrorHandler('Order ID and message are required', 400));
@@ -57,6 +58,8 @@ const sendMessage = async (req, res, next) => {
         await orderChat.save();
         // Populate user information for response
         const populatedMessage = await chatMessage_model_1.default.findById(savedMessage._id).populate('userId', 'firstName lastName email');
+        // Broadcast message to all users in the order room via Socket.IO
+        socket_service_1.socketService.broadcastMessage(orderId, populatedMessage);
         res.status(201).json((0, response_types_1.SuccessResponse)(populatedMessage, 'Message sent successfully'));
     }
     catch (error) {
@@ -124,7 +127,11 @@ const getUserOrderChats = async (req, res, next) => {
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
         // Get user's orders with chat information
-        const orders = await order_model_1.default.find({ userId }).sort({ updatedAt: -1 }).skip(skip).limit(limit).lean();
+        const orders = await order_model_1.default.find({ userId })
+            .sort({ updatedAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
         const orderIds = orders.map(order => order._id);
         // Get chat information for these orders
         const orderChats = await orderChat_model_1.default.find({ orderId: { $in: orderIds } })
@@ -206,7 +213,9 @@ const deleteMessage = async (req, res, next) => {
             orderChat.messages = orderChat.messages.filter(msgId => msgId.toString() !== messageId);
             // Update last message if this was the last message
             if (orderChat.lastMessage?.toString() === messageId) {
-                const lastMessage = await chatMessage_model_1.default.findOne({ orderId: message.orderId }).sort({ createdAt: -1 });
+                const lastMessage = await chatMessage_model_1.default.findOne({
+                    orderId: message.orderId,
+                }).sort({ createdAt: -1 });
                 orderChat.lastMessage = lastMessage?._id || null;
             }
             await orderChat.save();

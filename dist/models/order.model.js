@@ -1,6 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+const crypto_1 = __importDefault(require("crypto"));
 const mongoose_1 = require("mongoose");
+const order_types_1 = require("../types/order.types");
 const orderSchema = new mongoose_1.Schema({
     userId: { type: String, required: true, index: true, ref: 'User' },
     orderNumber: { type: String, unique: true, sparse: true },
@@ -24,7 +29,7 @@ const orderSchema = new mongoose_1.Schema({
     legalWeight: { type: String, enum: ['yes', 'no'], required: true },
     originAddress: { type: String, required: true },
     destinationAddress: { type: String, required: true },
-    orderMessage: { type: String },
+    stops: { type: [String], required: true },
     files: [
         {
             filename: { type: String, required: true },
@@ -35,8 +40,8 @@ const orderSchema = new mongoose_1.Schema({
     ],
     status: {
         type: String,
-        enum: ['pending', 'approved', 'rejected', 'in_progress', 'completed', 'cancelled'],
-        default: 'pending',
+        enum: Object.values(order_types_1.OrderStatus),
+        default: order_types_1.OrderStatus.PENDING,
     },
 }, {
     timestamps: true,
@@ -44,8 +49,21 @@ const orderSchema = new mongoose_1.Schema({
 orderSchema.pre('save', async function (next) {
     if (!this.orderNumber) {
         const Order = this.constructor;
-        const count = await Order.countDocuments();
-        this.orderNumber = `ORD-${String(count + 1).padStart(6, '0')}`;
+        let attempts = 0;
+        const maxAttempts = 10;
+        while (attempts < maxAttempts) {
+            const randomNumber = crypto_1.default.randomInt(100000, 999999);
+            const orderNumber = `ORD-${randomNumber}`;
+            const existingOrder = await Order.findOne({ orderNumber });
+            if (!existingOrder) {
+                this.orderNumber = orderNumber;
+                break;
+            }
+            attempts++;
+        }
+        if (attempts >= maxAttempts) {
+            return next(new Error('Unable to generate unique order number after maximum attempts'));
+        }
     }
     next();
 });

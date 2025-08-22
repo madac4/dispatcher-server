@@ -6,7 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.fileExists = exports.deleteFile = exports.getFile = exports.uploadFile = exports.initGridFS = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const stream_1 = require("stream");
-// We'll use any to avoid the type issues between mongoose and mongodb
 let bucket = null;
 // Initialize the GridFS bucket
 const initGridFS = () => {
@@ -25,7 +24,6 @@ const initGridFS = () => {
     }
 };
 exports.initGridFS = initGridFS;
-// Upload a file to GridFS
 const uploadFile = async (file) => {
     if (!bucket) {
         (0, exports.initGridFS)();
@@ -35,21 +33,18 @@ const uploadFile = async (file) => {
     }
     return new Promise((resolve, reject) => {
         try {
-            // Create a unique filename
             const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
             const filename = uniqueSuffix + '-' + file.originalname.replace(/\s+/g, '_');
             console.log('Creating readable stream from buffer', {
                 bufferExists: !!file.buffer,
                 bufferLength: file.buffer ? file.buffer.length : 0,
             });
-            // Create a readable stream from the file buffer
             const readableStream = new stream_1.Readable({
                 read() {
                     this.push(file.buffer);
                     this.push(null);
                 },
             });
-            // Create an upload stream
             const uploadStream = bucket.openUploadStream(filename, {
                 contentType: file.mimetype,
                 metadata: {
@@ -59,7 +54,6 @@ const uploadFile = async (file) => {
                     size: file.size,
                 },
             });
-            // Handle upload completion
             uploadStream.on('finish', function () {
                 console.log('GridFS upload finished successfully');
                 resolve({
@@ -69,12 +63,10 @@ const uploadFile = async (file) => {
                     size: file.size,
                 });
             });
-            // Handle errors
             uploadStream.on('error', function (error) {
                 console.error('GridFS upload error:', error);
                 reject(error);
             });
-            // Pipe the file to the upload stream
             readableStream.pipe(uploadStream);
         }
         catch (error) {

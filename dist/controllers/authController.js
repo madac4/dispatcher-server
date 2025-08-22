@@ -45,7 +45,9 @@ exports.register = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) =
         role: invitation.role,
     });
     await user.save();
-    await team_model_1.default.findByIdAndUpdate(invitation.teamId, { $addToSet: { members: user._id } });
+    await team_model_1.default.findByIdAndUpdate(invitation.teamId, {
+        $addToSet: { members: user._id },
+    });
     invitation.used = true;
     await invitation.save();
     res.status(201).json({ message: 'User registered successfully' });
@@ -155,7 +157,7 @@ exports.resetPassword = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, ne
 });
 exports.updatePassword = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const { userId } = req.user;
-    const { currentPassword, password, confirmPassword } = req.body;
+    const { currentPassword, password, confirmPassword, } = req.body;
     if (!currentPassword || !password || !confirmPassword)
         return next(new ErrorHandler_1.ErrorHandler('All fields are required', 400));
     if (password !== confirmPassword)

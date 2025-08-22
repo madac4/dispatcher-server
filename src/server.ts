@@ -22,32 +22,32 @@ const server = createServer(app)
 const port = parseInt(process.env.PORT || '3000', 10)
 
 connectDB().then(() => {
-  initGridFS()
+	initGridFS()
 })
 
 socketService.initialize(server)
 
 app.use(
-  cors({
-    credentials: true,
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true)
+	cors({
+		credentials: true,
+		origin: function (origin, callback) {
+			if (!origin) return callback(null, true)
 
-      if (process.env.FRONTEND_ORIGINS) {
-        if (process.env.FRONTEND_ORIGINS.indexOf(origin) === -1) {
-          const msg = `This site ${origin} does not have an access. Only specific domains are allowed to access it.`
-          return callback(new Error(msg), false)
-        }
-      }
-      return callback(null, true)
-    },
-  }),
+			if (process.env.FRONTEND_ORIGINS) {
+				if (process.env.FRONTEND_ORIGINS.indexOf(origin) === -1) {
+					const msg = `This site ${origin} does not have an access. Only specific domains are allowed to access it.`
+					return callback(new Error(msg), false)
+				}
+			}
+			return callback(null, true)
+		},
+	}),
 )
 
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
 
 app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({ status: 'ok', message: 'Server is running' })
+	res.status(200).json({ status: 'ok', message: 'Server is running' })
 })
 
 const jsonParser = bodyParser.json({ limit: '50mb' })
@@ -59,18 +59,21 @@ app.use('/api/trucks', jsonParser, TruckRoutes)
 app.use('/api/orders', jsonParser, OrderRoutes)
 app.use('/api/chat', jsonParser, ChatRoutes)
 app.use(
-  '/api/settings',
-  (req, res, next) => {
-    if (req.path.includes('/files') && (req.method === 'POST' || req.method === 'PUT')) {
-      return next()
-    }
-    return jsonParser(req, res, next)
-  },
-  SettingsRoutes,
+	'/api/settings',
+	(req, res, next) => {
+		if (
+			req.path.includes('/files') &&
+			(req.method === 'POST' || req.method === 'PUT')
+		) {
+			return next()
+		}
+		return jsonParser(req, res, next)
+	},
+	SettingsRoutes,
 )
 
 app.use(globalErrorHandler)
 
 server.listen(port, () => {
-  console.log(`Server is running on port ${port}`)
+	console.log(`Server is running on port ${port}`)
 })

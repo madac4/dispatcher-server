@@ -7,18 +7,16 @@ exports.ChatService = void 0;
 const chatMessage_model_1 = __importDefault(require("../models/chatMessage.model"));
 const orderChat_model_1 = __importDefault(require("../models/orderChat.model"));
 class ChatService {
-    // Send system message (e.g., order status updates)
     static async sendSystemMessage(orderId, message, senderType = 'system') {
         const systemMessage = new chatMessage_model_1.default({
             orderId,
-            userId: 'system', // System user ID
+            userId: 'system',
             message,
             messageType: 'system',
             senderType,
             isRead: false,
         });
         const savedMessage = await systemMessage.save();
-        // Update order chat
         await orderChat_model_1.default.findOneAndUpdate({ orderId }, {
             $push: { messages: savedMessage._id },
             $set: { lastMessage: savedMessage._id },
@@ -26,7 +24,6 @@ class ChatService {
         }, { upsert: true });
         return savedMessage;
     }
-    // Get chat statistics for an order
     static async getChatStats(orderId) {
         const totalMessages = await chatMessage_model_1.default.countDocuments({ orderId });
         const unreadMessages = await chatMessage_model_1.default.countDocuments({
