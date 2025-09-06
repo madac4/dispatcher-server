@@ -29,14 +29,11 @@ exports.paginatedTrailers = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res
 });
 exports.createTrailer = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const userId = req.user.userId;
-    const { year, make, vin, licencePlate, state, nrOfAxles, unitNumber, length, type } = req.body;
+    const { year, make, vin, licencePlate, state, nrOfAxles, unitNumber, length, type, } = req.body;
     if (!licencePlate)
         return next(new ErrorHandler_1.ErrorHandler('Licence plate is required', 400));
     if (!unitNumber)
         return next(new ErrorHandler_1.ErrorHandler('Unit number is required', 400));
-    const trailerExists = await trailer_model_1.default.findOne({ vin });
-    if (trailerExists)
-        return next(new ErrorHandler_1.ErrorHandler('Trailer already exists', 400));
     const trailer = await trailer_model_1.default.create({
         userId,
         year,
@@ -53,15 +50,28 @@ exports.createTrailer = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, ne
 });
 exports.updateTrailer = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const { trailerId } = req.params;
-    const { year, make, vin, licencePlate, state, nrOfAxles, unitNumber } = req.body;
+    const { year, make, vin, licencePlate, state, nrOfAxles, unitNumber, length, type, } = req.body;
     if (!licencePlate)
         return next(new ErrorHandler_1.ErrorHandler('Licence plate is required', 400));
     if (!unitNumber)
         return next(new ErrorHandler_1.ErrorHandler('Unit number is required', 400));
-    const existingTrailer = await trailer_model_1.default.findOne({ _id: trailerId, userId: req.user.userId });
+    const existingTrailer = await trailer_model_1.default.findOne({
+        _id: trailerId,
+        userId: req.user.userId,
+    });
     if (!existingTrailer)
         return next(new ErrorHandler_1.ErrorHandler('Trailer not found', 404));
-    const updatedTrailer = await trailer_model_1.default.findByIdAndUpdate(trailerId, { year, make, vin, licencePlate, state, nrOfAxles, unitNumber }, { new: true });
+    const updatedTrailer = await trailer_model_1.default.findByIdAndUpdate(trailerId, {
+        year,
+        make,
+        vin,
+        licencePlate,
+        state,
+        nrOfAxles,
+        unitNumber,
+        length,
+        type,
+    }, { new: true });
     res.status(200).json((0, response_types_1.SuccessResponse)(updatedTrailer, 'Trailer updated successfully'));
 });
 exports.deleteTrailer = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
@@ -92,7 +102,11 @@ exports.uploadTrailerFile = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res
         return next(new ErrorHandler_1.ErrorHandler('Trailer not found', 404));
     try {
         const fileData = await (0, gridfs_service_1.uploadFile)(file);
-        const updatedTrailer = await trailer_model_1.default.findByIdAndUpdate(trailerId, { $push: { files: { ...fileData, originalname: file.originalname } } }, { new: true }).lean();
+        const updatedTrailer = await trailer_model_1.default.findByIdAndUpdate(trailerId, {
+            $push: {
+                files: { ...fileData, originalname: file.originalname },
+            },
+        }, { new: true }).lean();
         if (!updatedTrailer)
             return next(new ErrorHandler_1.ErrorHandler('Failed to update trailer', 500));
         res.status(200).json((0, response_types_1.SuccessResponse)(updatedTrailer, 'File uploaded successfully'));

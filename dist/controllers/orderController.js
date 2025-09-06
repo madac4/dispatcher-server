@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteOrderFile = exports.downloadOrderFile = exports.getOrderFiles = exports.uploadOrderFile = exports.getOrderByNumber = exports.getStatuses = exports.getOrders = exports.duplicateOrder = exports.createOrder = void 0;
+exports.deleteOrderFile = exports.getOrderFiles = exports.uploadOrderFile = exports.downloadOrderFile = exports.getOrderByNumber = exports.getStatuses = exports.getOrders = exports.duplicateOrder = exports.createOrder = void 0;
 const order_dto_1 = require("../dto/order.dto");
 const order_model_1 = __importDefault(require("../models/order.model"));
 const chat_service_1 = require("../services/chat.service");
@@ -64,9 +64,14 @@ const createOrder = async (req, res, next) => {
             legalWeight: orderData.legalWeight,
             originAddress: orderData.originAddress,
             destinationAddress: orderData.destinationAddress,
-            stops: orderData.stops || [],
+            stops: typeof orderData.stops === 'string'
+                ? JSON.parse(orderData.stops)
+                : orderData.stops || [],
             files: [],
             status: 'pending',
+            axleConfigs: typeof orderData.axleConfigs === 'string'
+                ? JSON.parse(orderData.axleConfigs)
+                : orderData.axleConfigs || [],
         });
         const savedOrder = await newOrder.save();
         if (files && files.length > 0) {
@@ -112,14 +117,11 @@ exports.duplicateOrder = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, n
         ...order,
         userId,
     });
-    console.log(newOrder);
     res.status(201).json((0, response_types_1.SuccessResponse)(new order_dto_1.OrderDTO(newOrder), 'Order duplicated successfully'));
 });
 const getOrders = async (req, res, next) => {
     try {
         const userId = req.user.userId;
-        if (!userId)
-            return next(new ErrorHandler_1.ErrorHandler('User not authenticated', 401));
         const { page, limit, search } = req.query;
         const statuses = req.query['status[]'] || [];
         const skip = (page - 1) * limit;
@@ -216,16 +218,16 @@ const getOrderByNumber = async (req, res, next) => {
     try {
         const userId = req.user.userId;
         const { orderNumber } = req.params;
-        if (!userId)
-            return next(new ErrorHandler_1.ErrorHandler('User not authenticated', 401));
         if (!orderNumber)
             return next(new ErrorHandler_1.ErrorHandler('Order number is required', 400));
-        const order = await order_model_1.default.findOne({ orderNumber, userId })
+        const order = await order_model_1.default.findOne({ orderNumber })
             .populate('truckId')
             .populate('trailerId');
         if (!order)
             return next(new ErrorHandler_1.ErrorHandler('Order not found', 404));
-        res.status(200).json((0, response_types_1.SuccessResponse)(new order_dto_1.OrderDTO(order), 'Order retrieved successfully'));
+        const orderDTO = new order_dto_1.OrderDTO(order);
+        console.log(orderDTO);
+        res.status(200).json((0, response_types_1.SuccessResponse)(orderDTO, 'Order retrieved successfully'));
     }
     catch (error) {
         console.error('Error getting order by number:', error);
@@ -233,148 +235,28 @@ const getOrderByNumber = async (req, res, next) => {
     }
 };
 exports.getOrderByNumber = getOrderByNumber;
-// export const updateOrder = async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const userId = (req as any).user?.id
-//     if (!userId) {
-//       res.status(401).json({ success: false, message: 'User not authenticated' })
-//       return
-//     }
-//     const { id } = req.params
-//     const updateData: IUpdateOrderRequest = req.body
-//     const order = await Order.findOne({ _id: id, userId })
-//     if (!order) {
-//       res.status(404).json({ success: false, message: 'Order not found' })
-//       return
-//     }
-//     // Update fields
-//     Object.keys(updateData).forEach(key => {
-//       if (key === 'permitStartDate' && updateData[key]) {
-//         ;(order as any)[key] = new Date(updateData[key] as string)
-//       } else if (updateData[key as keyof IUpdateOrderRequest] !== undefined) {
-//         ;(order as any)[key] = updateData[key as keyof IUpdateOrderRequest]
-//       }
-//     })
-//     const updatedOrder = await order.save()
-//     const response: IOrderResponse = {
-//       success: true,
-//       message: 'Order updated successfully',
-//       data: updatedOrder,
-//     }
-//     res.status(200).json(response)
-//   } catch (error) {
-//     console.error('Error updating order:', error)
-//     res.status(500).json({
-//       success: false,
-//       message: 'Internal server error while updating order',
-//     })
-//   }
-// }
-// Delete an order
-// export const deleteOrder = async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const userId = (req as any).user?.id
-//     if (!userId) {
-//       res.status(401).json({ success: false, message: 'User not authenticated' })
-//       return
-//     }
-//     const { id } = req.params
-//     const order = await Order.findOne({ _id: id, userId })
-//     if (!order) {
-//       res.status(404).json({ success: false, message: 'Order not found' })
-//       return
-//     }
-//     await Order.findByIdAndDelete(id)
-//     res.status(200).json({
-//       success: true,
-//       message: 'Order deleted successfully',
-//     })
-//   } catch (error) {
-//     console.error('Error deleting order:', error)
-//     res.status(500).json({
-//       success: false,
-//       message: 'Internal server error while deleting order',
-//     })
-//   }
-// }
-// export const updateOrderStatus = async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const userId = (req as any).user?.id
-//     if (!userId) {
-//       res.status(401).json({ success: false, message: 'User not authenticated' })
-//       return
-//     }
-//     const { id } = req.params
-//     const { status } = req.body
-//     if (!status || !['pending', 'approved', 'rejected', 'in_progress', 'completed', 'cancelled'].includes(status)) {
-//       res.status(400).json({
-//         success: false,
-//         message: 'Invalid status. Must be one of: pending, approved, rejected, in_progress, completed, cancelled',
-//       })
-//       return
-//     }
-//     const order = await Order.findOne({ _id: id, userId })
-//     if (!order) {
-//       res.status(404).json({ success: false, message: 'Order not found' })
-//       return
-//     }
-//     order.status = status
-//     const updatedOrder = await order.save()
-//     const response: IOrderResponse = {
-//       success: true,
-//       message: 'Order status updated successfully',
-//       data: updatedOrder,
-//     }
-//     res.status(200).json(response)
-//   } catch (error) {
-//     console.error('Error updating order status:', error)
-//     res.status(500).json({
-//       success: false,
-//       message: 'Internal server error while updating order status',
-//     })
-//   }
-// }
-// export const calculateOrderCosts = async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const userId = (req as any).user?.id
-//     if (!userId) {
-//       res.status(401).json({ success: false, message: 'User not authenticated' })
-//       return
-//     }
-//     const { originAddress, destinationAddress, ...orderData } = req.body
-//     if (!originAddress || !destinationAddress) {
-//       res.status(400).json({
-//         success: false,
-//         message: 'Origin and destination addresses are required',
-//       })
-//       return
-//     }
-//     // Get route information
-//     const routeInfo = await OrderService.getRouteInfo(originAddress, destinationAddress)
-//     // Create a temporary order object for cost calculation
-//     const tempOrder = {
-//       ...orderData,
-//       originAddress,
-//       destinationAddress,
-//     } as any
-//     // Calculate costs
-//     const costs = OrderService.calculateCosts(tempOrder, routeInfo)
-//     res.status(200).json({
-//       success: true,
-//       message: 'Costs calculated successfully',
-//       data: {
-//         costs,
-//         routeInfo,
-//       },
-//     })
-//   } catch (error) {
-//     console.error('Error calculating costs:', error)
-//     res.status(500).json({
-//       success: false,
-//       message: 'Internal server error while calculating costs',
-//     })
-//   }
-// }
+exports.downloadOrderFile = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
+    const { filename, orderId } = req.params;
+    const userId = req.user.userId;
+    const order = await order_model_1.default.findOne({
+        userId,
+        _id: orderId,
+        'files.filename': filename,
+    }).lean();
+    if (!order)
+        return next(new ErrorHandler_1.ErrorHandler('File not found or access denied', 404));
+    const fileData = order.files.find((file) => file.filename === filename);
+    if (!fileData)
+        return next(new ErrorHandler_1.ErrorHandler('File metadata not found', 404));
+    const exists = await (0, gridfs_service_1.fileExists)(filename);
+    if (!exists) {
+        return next(new ErrorHandler_1.ErrorHandler('File not found in storage', 404));
+    }
+    res.setHeader('Content-Disposition', `attachment; filename="${fileData.originalname}"`);
+    res.setHeader('Content-Type', fileData.contentType);
+    const fileStream = await (0, gridfs_service_1.getFile)(filename);
+    fileStream.pipe(res);
+});
 const uploadOrderFile = async (req, res, next) => {
     try {
         const file = req.file;
@@ -417,40 +299,13 @@ const getOrderFiles = async (req, res, next) => {
     }
 };
 exports.getOrderFiles = getOrderFiles;
-const downloadOrderFile = async (req, res, next) => {
-    try {
-        const { filename } = req.params;
-        const userId = req.user.userId;
-        const order = await order_model_1.default.findOne({
-            userId,
-            'files.filename': filename,
-        }).lean();
-        if (!order)
-            return next(new ErrorHandler_1.ErrorHandler('File not found or access denied', 404));
-        const fileData = order.files.find((file) => file.filename === filename);
-        if (!fileData)
-            return next(new ErrorHandler_1.ErrorHandler('File metadata not found', 404));
-        const exists = await (0, gridfs_service_1.fileExists)(filename);
-        if (!exists) {
-            return next(new ErrorHandler_1.ErrorHandler('File not found in storage', 404));
-        }
-        res.setHeader('Content-Disposition', `attachment; filename="${fileData.originalname}"`);
-        res.setHeader('Content-Type', fileData.contentType);
-        const fileStream = await (0, gridfs_service_1.getFile)(filename);
-        fileStream.pipe(res);
-    }
-    catch (error) {
-        console.error('Error downloading order file:', error);
-        return next(new ErrorHandler_1.ErrorHandler(`File download failed: ${error.message}`, 500));
-    }
-};
-exports.downloadOrderFile = downloadOrderFile;
 const deleteOrderFile = async (req, res, next) => {
     try {
-        const { filename } = req.params;
+        const { filename, orderId } = req.params;
         const userId = req.user.userId;
         const order = await order_model_1.default.findOne({
             userId,
+            _id: orderId,
             'files.filename': filename,
         });
         if (!order)

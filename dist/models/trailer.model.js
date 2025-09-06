@@ -5,7 +5,7 @@ const trailerSchema = new mongoose_1.Schema({
     userId: { type: String, required: true, index: true, ref: 'User' },
     year: { type: Number, required: true },
     make: { type: String, required: true },
-    vin: { type: String, required: true, unique: true },
+    vin: { type: String, required: true },
     licencePlate: { type: String, required: true },
     state: { type: String, required: true },
     nrOfAxles: { type: Number, required: true },

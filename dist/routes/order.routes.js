@@ -14,6 +14,7 @@ router.post('/create', authMiddleware_1.authMiddleware, multer_1.default.array('
 router.post('/duplicate/:orderId', authMiddleware_1.authMiddleware, orderController_1.duplicateOrder);
 // router.put('/:id', updateOrder)
 router.get('/:orderNumber', authMiddleware_1.authMiddleware, orderController_1.getOrderByNumber);
+router.get('/:orderId/files/:filename', authMiddleware_1.authMiddleware, orderController_1.downloadOrderFile);
 // router.delete('/:id', deleteOrder)
 // router.patch('/:id/status', updateOrderStatus)
 // router.post('/calculate-costs', calculateOrderCosts)

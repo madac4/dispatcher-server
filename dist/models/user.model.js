@@ -78,12 +78,12 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
     return await bcrypt_1.default.compare(enteredPassword, this.password);
 };
 userSchema.methods.signAccessToken = function () {
-    return jsonwebtoken_1.default.sign({ userId: this._id, role: this.role }, process.env.JWT_SECRET, {
+    return jsonwebtoken_1.default.sign({ userId: this._id, role: this.role, email: this.email, id: this._id }, process.env.JWT_SECRET, {
         expiresIn: '1h',
     });
 };
 userSchema.methods.signRefreshToken = function () {
-    return jsonwebtoken_1.default.sign({ userId: this._id, role: this.role }, process.env.JWT_SECRET, {
+    return jsonwebtoken_1.default.sign({ userId: this._id, role: this.role, email: this.email, id: this._id }, process.env.JWT_SECRET, {
         expiresIn: '7d',
     });
 };

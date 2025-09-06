@@ -10,7 +10,7 @@ class ChatService {
     static async sendSystemMessage(orderId, message, senderType = 'system') {
         const systemMessage = new chatMessage_model_1.default({
             orderId,
-            userId: 'system',
+            userId: null,
             message,
             messageType: 'system',
             senderType,

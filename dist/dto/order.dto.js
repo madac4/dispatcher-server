@@ -30,6 +30,7 @@ class OrderDTO {
         this.status = model.status;
         this.createdAt = model.createdAt;
         this.updatedAt = model.updatedAt;
+        this.axleConfigs = model.axleConfigs || [];
         if (model.truckId) {
             const truck = model.truckId;
             this.truck = {

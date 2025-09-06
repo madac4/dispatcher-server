@@ -7,54 +7,57 @@ exports.logout = exports.updatePassword = exports.resetPassword = exports.forgot
 const crypto_1 = __importDefault(require("crypto"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const nodemailer_1 = __importDefault(require("../config/nodemailer"));
-const invitation_model_1 = __importDefault(require("../models/invitation.model"));
 const refresh_token_model_1 = __importDefault(require("../models/refresh-token.model"));
 const reset_token_model_1 = __importDefault(require("../models/reset-token.model"));
-const team_model_1 = __importDefault(require("../models/team.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
+const auth_types_1 = require("../types/auth.types");
 const response_types_1 = require("../types/response.types");
 const ErrorHandler_1 = require("../utils/ErrorHandler");
 const renderEmail_1 = __importDefault(require("../utils/renderEmail"));
 const validators_1 = require("../utils/validators");
 exports.register = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
-    const { email, password, inviteCode } = req.body;
-    if (!inviteCode) {
-        return next(new ErrorHandler_1.ErrorHandler('Invite code is required', 400));
-    }
+    const { email, password } = req.body;
+    // if (!inviteCode) {
+    // 	return next(new ErrorHandler('Invite code is required', 400))
+    // }
     if (!email || !password) {
         return next(new ErrorHandler_1.ErrorHandler('Email and password are required', 400));
     }
-    const emailInvitation = await invitation_model_1.default.findOne({
-        email,
-    });
-    if (!emailInvitation) {
-        return next(new ErrorHandler_1.ErrorHandler('You do not have an invitation on this email', 400));
-    }
-    const invitation = await invitation_model_1.default.findOne({
-        code: inviteCode,
-        email,
-        used: false,
-    });
-    if (!invitation)
-        return next(new ErrorHandler_1.ErrorHandler('Invalid or expired invite code', 400));
-    if (invitation.expiresAt < new Date()) {
-        return next(new ErrorHandler_1.ErrorHandler('Invite code has expired', 400));
-    }
+    // const emailInvitation = await Invitation.findOne({
+    // 	email,
+    // })
+    // if (!emailInvitation) {
+    // 	return next(
+    // 		new ErrorHandler(
+    // 			'You do not have an invitation on this email',
+    // 			400,
+    // 		),
+    // 	)
+    // }
+    // const invitation = await Invitation.findOne({
+    // 	code: inviteCode,
+    // 	email,
+    // 	used: false,
+    // })
+    // if (!invitation)
+    // 	return next(new ErrorHandler('Invalid or expired invite code', 400))
+    // if (invitation.expiresAt < new Date()) {
+    // 	return next(new ErrorHandler('Invite code has expired', 400))
+    // }
     const existingUser = await user_model_1.default.findOne({ email });
-    if (existingUser) {
+    if (existingUser)
         return next(new ErrorHandler_1.ErrorHandler('User already exists', 400));
-    }
     const user = new user_model_1.default({
         email,
         password,
-        role: invitation.role,
+        role: auth_types_1.UserRole.USER,
     });
     await user.save();
-    await team_model_1.default.findByIdAndUpdate(invitation.teamId, {
-        $addToSet: { members: user._id },
-    });
-    invitation.used = true;
-    await invitation.save();
+    // await Team.findByIdAndUpdate(invitation.teamId, {
+    // 	$addToSet: { members: user._id },
+    // })
+    // invitation.used = true
+    // await invitation.save()
     res.status(201).json((0, response_types_1.SuccessResponse)(null, 'User registered successfully'));
 });
 exports.login = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
@@ -66,10 +69,10 @@ exports.login = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     }
     const user = await user_model_1.default.findOne({ email }).select('+password');
     if (!user)
-        return next(new ErrorHandler_1.ErrorHandler('Invalid credentials', 400));
+        return next(new ErrorHandler_1.ErrorHandler('You do not have an account, please register', 400));
     const isMatch = await user.comparePassword(password);
     if (!isMatch)
-        return next(new ErrorHandler_1.ErrorHandler('Invalid credentials', 400));
+        return next(new ErrorHandler_1.ErrorHandler('Invalid email or password', 400));
     const accessToken = user.signAccessToken();
     const refreshToken = user.signRefreshToken();
     const refreshTokenDoc = new refresh_token_model_1.default({

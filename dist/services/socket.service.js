@@ -9,33 +9,37 @@ const socket_io_1 = require("socket.io");
 class SocketService {
     constructor() {
         this.io = null;
-        this.userSockets = new Map(); // userId -> socketIds[]
-        this.orderRooms = new Map(); // orderId -> userIds[]
+        this.userSockets = new Map();
+        this.orderRooms = new Map();
     }
     initialize(server) {
         this.io = new socket_io_1.Server(server, {
             cors: {
-                origin: process.env.FRONTEND_ORIGINS?.split(',') || ['http://localhost:3000'],
+                origin: process.env.FRONTEND_ORIGINS?.split(',') || [
+                    'http://localhost:3000',
+                ],
                 methods: ['GET', 'POST'],
                 credentials: true,
             },
         });
         this.setupMiddleware();
         this.setupEventHandlers();
-        console.log('Socket.IO server initialized');
     }
     setupMiddleware() {
         if (!this.io)
             return;
-        // Authentication middleware
         this.io.use(async (socket, next) => {
             try {
-                const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+                const token = socket.handshake.auth.token ||
+                    socket.handshake.headers.authorization?.split(' ')[1];
                 if (!token) {
                     return next(new Error('Authentication error: No token provided'));
                 }
                 const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
-                socket.data.userId = decoded.id;
+                socket.data = {
+                    id: decoded.id,
+                    email: decoded.email,
+                };
                 next();
             }
             catch (error) {
@@ -47,13 +51,9 @@ class SocketService {
         if (!this.io)
             return;
         this.io.on('connection', socket => {
-            const userId = socket.data.userId;
-            console.log(`User ${userId} connected: ${socket.id}`);
-            // Store user's socket connection
-            this.addUserSocket(userId, socket.id);
-            // Join user's order rooms
-            this.joinUserOrderRooms(socket, userId);
-            // Handle joining specific order room
+            const userId = socket.data.id;
+            const email = socket.data.email;
+            this.addUserSocket(userId, email, socket.id);
             socket.on('join-order-room', (orderId) => {
                 this.joinOrderRoom(socket, orderId, userId);
             });
@@ -61,22 +61,20 @@ class SocketService {
             socket.on('leave-order-room', (orderId) => {
                 this.leaveOrderRoom(socket, orderId, userId);
             });
-            // Handle typing indicator
             socket.on('typing-start', (orderId) => {
                 socket.to(`order-${orderId}`).emit('user-typing', {
-                    userId,
+                    email,
                     orderId,
                     isTyping: true,
                 });
             });
             socket.on('typing-stop', (orderId) => {
                 socket.to(`order-${orderId}`).emit('user-typing', {
-                    userId,
+                    email,
                     orderId,
                     isTyping: false,
                 });
             });
-            // Handle message read receipts
             socket.on('mark-read', (orderId) => {
                 socket.to(`order-${orderId}`).emit('message-read', {
                     userId,
@@ -84,30 +82,26 @@ class SocketService {
                     timestamp: new Date(),
                 });
             });
-            // Handle disconnection
             socket.on('disconnect', () => {
                 this.removeUserSocket(userId, socket.id);
                 console.log(`User ${userId} disconnected: ${socket.id}`);
             });
         });
     }
-    addUserSocket(userId, socketId) {
+    addUserSocket(userId, email, socketId) {
         const userSockets = this.userSockets.get(userId) || [];
-        userSockets.push(socketId);
+        userSockets.push({ id: socketId, email });
         this.userSockets.set(userId, userSockets);
     }
     removeUserSocket(userId, socketId) {
         const userSockets = this.userSockets.get(userId) || [];
-        const updatedSockets = userSockets.filter(id => id !== socketId);
+        const updatedSockets = userSockets.filter(socket => socket.id !== socketId);
         if (updatedSockets.length === 0) {
             this.userSockets.delete(userId);
         }
         else {
             this.userSockets.set(userId, updatedSockets);
         }
-    }
-    async joinUserOrderRooms(socket, userId) {
-        console.log(`User ${userId} ready to join order rooms`);
     }
     joinOrderRoom(socket, orderId, userId) {
         const roomName = `order-${orderId}`;
@@ -146,7 +140,6 @@ class SocketService {
             timestamp: new Date(),
         });
     }
-    // Broadcast new message to all users in an order room
     broadcastMessage(orderId, message) {
         if (!this.io)
             return;
@@ -176,7 +169,7 @@ class SocketService {
             return;
         const userSockets = this.userSockets.get(userId) || [];
         userSockets.forEach(socketId => {
-            this.io.to(socketId).emit('notification', notification);
+            this.io.to(socketId.id).emit('notification', notification);
         });
         console.log(`Notification sent to user: ${userId}`);
     }

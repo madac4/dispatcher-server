@@ -5,7 +5,7 @@ const truckSchema = new mongoose_1.Schema({
     userId: { type: String, required: true, index: true, ref: 'User' },
     year: { type: Number },
     make: { type: String },
-    vin: { type: String, required: true, unique: true },
+    vin: { type: String, required: true },
     licencePlate: { type: String, required: true },
     state: { type: String },
     nrOfAxles: { type: Number },

@@ -34,9 +34,6 @@ exports.createTruck = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next
         return next(new ErrorHandler_1.ErrorHandler('Licence plate is required', 400));
     if (!unitNumber)
         return next(new ErrorHandler_1.ErrorHandler('Unit number is required', 400));
-    const truckExists = await truck_model_1.default.findOne({ vin });
-    if (truckExists)
-        return next(new ErrorHandler_1.ErrorHandler('Truck already exists', 400));
     const truck = await truck_model_1.default.create({
         userId,
         year,
@@ -56,7 +53,10 @@ exports.updateTruck = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next
         return next(new ErrorHandler_1.ErrorHandler('Licence plate is required', 400));
     if (!unitNumber)
         return next(new ErrorHandler_1.ErrorHandler('Unit number is required', 400));
-    const existingTruck = await truck_model_1.default.findOne({ _id: truckId, userId: req.user.userId });
+    const existingTruck = await truck_model_1.default.findOne({
+        _id: truckId,
+        userId: req.user.userId,
+    });
     if (!existingTruck)
         return next(new ErrorHandler_1.ErrorHandler('Truck not found', 404));
     const updatedTruck = await truck_model_1.default.findByIdAndUpdate(truckId, { year, make, vin, licencePlate, state, nrOfAxles, unitNumber }, { new: true });
@@ -90,7 +90,11 @@ exports.uploadTruckFile = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, 
         return next(new ErrorHandler_1.ErrorHandler('Truck not found', 404));
     try {
         const fileData = await (0, gridfs_service_1.uploadFile)(file);
-        const updatedTruck = await truck_model_1.default.findByIdAndUpdate(truckId, { $push: { files: { ...fileData, originalname: file.originalname } } }, { new: true }).lean();
+        const updatedTruck = await truck_model_1.default.findByIdAndUpdate(truckId, {
+            $push: {
+                files: { ...fileData, originalname: file.originalname },
+            },
+        }, { new: true }).lean();
         if (!updatedTruck)
             return next(new ErrorHandler_1.ErrorHandler('Failed to update truck', 500));
         res.status(200).json((0, response_types_1.SuccessResponse)(updatedTruck, 'File uploaded successfully'));

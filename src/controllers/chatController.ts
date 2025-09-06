@@ -1,65 +1,50 @@
 import { NextFunction, Request, Response } from 'express'
+import { MessageDTO } from '../dto/message.dto'
 import ChatMessage from '../models/chatMessage.model'
 import Order from '../models/order.model'
 import OrderChat from '../models/orderChat.model'
 import { socketService } from '../services/socket.service'
-import { ICreateMessageRequest } from '../types/chat.types'
-import { SuccessResponse } from '../types/response.types'
-import { ErrorHandler } from '../utils/ErrorHandler'
+import { IChatMessage, MessagePayload } from '../types/chat.types'
+import {
+	CreatePaginationMeta,
+	PaginatedResponse,
+	PaginationMeta,
+	SuccessResponse,
+} from '../types/response.types'
+import { CatchAsyncErrors, ErrorHandler } from '../utils/ErrorHandler'
 
-// Send a message to an order chat
-export const sendMessage = async (
-	req: Request,
-	res: Response,
-	next: NextFunction,
-): Promise<void> => {
-	try {
+export const sendMessage = CatchAsyncErrors(
+	async (req: Request, res: Response, next: NextFunction) => {
 		const userId = req.user.id
-		if (!userId)
-			return next(new ErrorHandler('User not authenticated', 401))
 
-		const messageData: ICreateMessageRequest = req.body
-		const {
-			orderId,
-			message,
-			messageType = 'text',
-			senderType = 'user',
-			attachments = [],
-		} = messageData
+		const { orderId, message }: MessagePayload = req.body
 
-		// Validate required fields
 		if (!orderId || !message) {
 			return next(
 				new ErrorHandler('Order ID and message are required', 400),
 			)
 		}
 
-		// Verify order exists and user has access
-		const order = await Order.findOne({ _id: orderId, userId })
+		// add userId
+		const order = await Order.findOne({ _id: orderId })
 		if (!order) {
 			return next(
 				new ErrorHandler('Order not found or access denied', 404),
 			)
 		}
 
-		// Create new message
 		const newMessage = new ChatMessage({
 			orderId,
 			userId,
 			message,
-			messageType,
-			senderType,
-			attachments,
 			isRead: false,
 		})
 
 		const savedMessage = await newMessage.save()
 
-		// Update or create order chat
 		let orderChat = await OrderChat.findOne({ orderId })
 
 		if (!orderChat) {
-			// Create new chat session for this order
 			orderChat = new OrderChat({
 				orderId,
 				messages: [savedMessage._id as any],
@@ -67,7 +52,6 @@ export const sendMessage = async (
 				unreadCount: 1,
 			})
 		} else {
-			// Update existing chat session
 			orderChat.messages.push(savedMessage._id as any)
 			orderChat.lastMessage = savedMessage._id as any
 			orderChat.unreadCount += 1
@@ -75,103 +59,58 @@ export const sendMessage = async (
 
 		await orderChat.save()
 
-		// Populate user information for response
-		const populatedMessage = await ChatMessage.findById(
+		const populatedMessage = (await ChatMessage.findById(
 			savedMessage._id,
-		).populate('userId', 'firstName lastName email')
+		).populate('userId', 'email')) as IChatMessage
 
-		// Broadcast message to all users in the order room via Socket.IO
-		socketService.broadcastMessage(orderId, populatedMessage as any)
+		const messageDTO = new MessageDTO(populatedMessage)
+
+		socketService.broadcastMessage(orderId, messageDTO)
 
 		res.status(201).json(
-			SuccessResponse(populatedMessage, 'Message sent successfully'),
+			SuccessResponse(messageDTO, 'Message sent successfully'),
 		)
-	} catch (error) {
-		console.error('Error sending message:', error)
-		return next(
-			new ErrorHandler(
-				'Internal server error while sending message',
-				500,
-			),
-		)
-	}
-}
+	},
+)
 
-// Get chat messages for an order
-export const getOrderMessages = async (
-	req: Request,
-	res: Response,
-	next: NextFunction,
-): Promise<void> => {
-	try {
+export const getOrderMessages = CatchAsyncErrors(
+	async (req: Request, res: Response, next: NextFunction) => {
 		const userId = req.user.id
-		if (!userId)
-			return next(new ErrorHandler('User not authenticated', 401))
 
 		const { orderId } = req.params
 		const page = parseInt(req.query.page as string) || 1
 		const limit = parseInt(req.query.limit as string) || 50
 		const skip = (page - 1) * limit
 
-		// Verify order exists and user has access
-		const order = await Order.findOne({ _id: orderId, userId })
+		// add userId
+		const order = await Order.findOne({ _id: orderId })
 		if (!order) {
 			return next(
 				new ErrorHandler('Order not found or access denied', 404),
 			)
 		}
 
-		// Get messages with pagination
 		const messages = await ChatMessage.find({ orderId })
-			.sort({ createdAt: -1 })
+			.populate('userId', 'email')
 			.skip(skip)
 			.limit(limit)
-			.populate('userId', 'firstName lastName email')
 			.lean()
 
-		// Get total count
 		const total = await ChatMessage.countDocuments({ orderId })
 
-		// Mark messages as read if they're from other users
-		const unreadMessages = messages.filter(
-			msg => !msg.isRead && msg.userId !== userId,
-		)
-
-		if (unreadMessages.length > 0) {
-			await ChatMessage.updateMany(
-				{ _id: { $in: unreadMessages.map(msg => msg._id) } },
-				{ isRead: true },
-			)
-		}
-
-		// Update unread count in order chat
 		await OrderChat.findOneAndUpdate(
 			{ orderId },
 			{ unreadCount: 0 },
 			{ upsert: true },
 		)
 
-		res.status(200).json({
-			success: true,
-			message: 'Messages retrieved successfully',
-			data: {
-				messages: messages.reverse(), // Return in chronological order
-				total,
-				page,
-				limit,
-				hasMore: skip + limit < total,
-			},
-		})
-	} catch (error) {
-		console.error('Error getting messages:', error)
-		return next(
-			new ErrorHandler(
-				'Internal server error while retrieving messages',
-				500,
-			),
-		)
-	}
-}
+		const messagesDTO = messages.map(message => new MessageDTO(message))
+
+		const meta: PaginationMeta = CreatePaginationMeta(total, page, limit)
+
+		res.status(200).json(PaginatedResponse(messagesDTO, meta))
+	},
+)
 
 // Get all order chats for a user
 export const getUserOrderChats = async (
@@ -342,42 +281,26 @@ export const deleteMessage = async (
 }
 
 // Get unread message count for an order
-export const getUnreadCount = async (
-	req: Request,
-	res: Response,
-	next: NextFunction,
-): Promise<void> => {
-	try {
+export const getUnreadCount = CatchAsyncErrors(
+	async (req: Request, res: Response, next: NextFunction) => {
 		const userId = req.user.id
-		if (!userId)
-			return next(new ErrorHandler('User not authenticated', 401))
-
 		const { orderId } = req.params
 
-		// Verify order exists and user has access
-		const order = await Order.findOne({ _id: orderId, userId })
+		const order = await Order.findOne({ _id: orderId })
 		if (!order) {
 			return next(
 				new ErrorHandler('Order not found or access denied', 404),
 			)
 		}
 
-		const unreadCount = await ChatMessage.countDocuments({
+		const count = await ChatMessage.countDocuments({
 			orderId,
 			isRead: false,
 			userId: { $ne: userId },
 		})
 
 		res.status(200).json(
-			SuccessResponse({ unreadCount }, 'Unread count retrieved'),
+			SuccessResponse({ count }, 'Unread count retrieved'),
 		)
-	} catch (error) {
-		console.error('Error getting unread count:', error)
-		return next(
-			new ErrorHandler(
-				'Internal server error while getting unread count',
-				500,
-			),
-		)
-	}
-}
+	},
+)

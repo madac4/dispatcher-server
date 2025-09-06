@@ -2,10 +2,8 @@ import crypto from 'crypto'
 import { NextFunction, Request, Response } from 'express'
 import jwt from 'jsonwebtoken'
 import transporter from '../config/nodemailer'
-import Invitation from '../models/invitation.model'
 import RefreshToken from '../models/refresh-token.model'
 import ResetToken from '../models/reset-token.model'
-import Team from '../models/team.model'
 import User from '../models/user.model'
 import {
 	ForgotPasswordRequest,
@@ -24,11 +22,11 @@ import { validatePassword } from '../utils/validators'
 
 export const register = CatchAsyncErrors(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const { email, password, inviteCode }: RegisterRequest = req.body
+		const { email, password }: RegisterRequest = req.body
 
-		if (!inviteCode) {
-			return next(new ErrorHandler('Invite code is required', 400))
-		}
+		// if (!inviteCode) {
+		// 	return next(new ErrorHandler('Invite code is required', 400))
+		// }
 
 		if (!email || !password) {
 			return next(
@@ -36,51 +34,50 @@ export const register = CatchAsyncErrors(
 			)
 		}
 
-		const emailInvitation = await Invitation.findOne({
-			email,
-		})
+		// const emailInvitation = await Invitation.findOne({
+		// 	email,
+		// })
 
-		if (!emailInvitation) {
-			return next(
-				new ErrorHandler(
-					'You do not have an invitation on this email',
-					400,
-				),
-			)
-		}
+		// if (!emailInvitation) {
+		// 	return next(
+		// 		new ErrorHandler(
+		// 			'You do not have an invitation on this email',
+		// 			400,
+		// 		),
+		// 	)
+		// }
 
-		const invitation = await Invitation.findOne({
-			code: inviteCode,
-			email,
-			used: false,
-		})
+		// const invitation = await Invitation.findOne({
+		// 	code: inviteCode,
+		// 	email,
+		// 	used: false,
+		// })
 
-		if (!invitation)
-			return next(new ErrorHandler('Invalid or expired invite code', 400))
+		// if (!invitation)
+		// 	return next(new ErrorHandler('Invalid or expired invite code', 400))
 
-		if (invitation.expiresAt < new Date()) {
-			return next(new ErrorHandler('Invite code has expired', 400))
-		}
+		// if (invitation.expiresAt < new Date()) {
+		// 	return next(new ErrorHandler('Invite code has expired', 400))
+		// }
 
 		const existingUser = await User.findOne({ email })
 
-		if (existingUser) {
+		if (existingUser)
 			return next(new ErrorHandler('User already exists', 400))
-		}
 
 		const user = new User({
 			email,
 			password,
-			role: invitation.role,
+			role: UserRole.USER,
 		})
 		await user.save()
 
-		await Team.findByIdAndUpdate(invitation.teamId, {
-			$addToSet: { members: user._id },
-		})
+		// await Team.findByIdAndUpdate(invitation.teamId, {
+		// 	$addToSet: { members: user._id },
+		// })
 
-		invitation.used = true
-		await invitation.save()
+		// invitation.used = true
+		// await invitation.save()
 
 		res.status(201).json(
 			SuccessResponse(null, 'User registered successfully'),
@@ -108,10 +105,17 @@ export const login = CatchAsyncErrors(
 
 		const user = await User.findOne({ email }).select('+password')
 
-		if (!user) return next(new ErrorHandler('Invalid credentials', 400))
+		if (!user)
+			return next(
+				new ErrorHandler(
+					'You do not have an account, please register',
+					400,
+				),
+			)
 
 		const isMatch = await user.comparePassword(password)
-		if (!isMatch) return next(new ErrorHandler('Invalid credentials', 400))
+		if (!isMatch)
+			return next(new ErrorHandler('Invalid email or password', 400))
 
 		const accessToken = user.signAccessToken()
 		const refreshToken = user.signRefreshToken()

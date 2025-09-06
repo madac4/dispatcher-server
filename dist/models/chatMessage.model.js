@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
 const chatMessageSchema = new mongoose_1.Schema({
     orderId: { type: String, required: true, index: true, ref: 'Order' },
-    userId: { type: String, required: true, index: true, ref: 'User' },
+    userId: { type: String, index: true, ref: 'User' },
     message: { type: String, required: true },
     messageType: {
         type: String,
@@ -15,15 +15,6 @@ const chatMessageSchema = new mongoose_1.Schema({
         enum: ['user', 'admin', 'system'],
         default: 'user',
     },
-    attachments: [
-        {
-            filename: { type: String, required: true },
-            originalname: { type: String, required: true },
-            contentType: { type: String, required: true },
-            size: { type: Number, required: true },
-            url: { type: String },
-        },
-    ],
     isRead: { type: Boolean, default: false },
 }, {
     timestamps: true,

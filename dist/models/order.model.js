@@ -43,6 +43,16 @@ const orderSchema = new mongoose_1.Schema({
         enum: Object.values(order_types_1.OrderStatus),
         default: order_types_1.OrderStatus.PENDING,
     },
+    axleConfigs: {
+        type: [
+            {
+                tires: { type: Number, required: true },
+                tireWidth: { type: Number, required: true },
+                weight: { type: Number, required: true },
+                spacing: { type: String, required: false },
+            },
+        ],
+    },
 }, {
     timestamps: true,
 });
