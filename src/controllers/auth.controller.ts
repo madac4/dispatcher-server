@@ -106,7 +106,10 @@ export const register = CatchAsyncErrors(
     res
       .status(201)
       .json(
-        SuccessResponse(null, `User registered successfully ${role ? 'with role ' + role : ''}`)
+        SuccessResponse(
+          null,
+          `User registered successfully ${role !== UserRole.USER ? 'with role ' + role : ''}`
+        )
       );
   }
 );

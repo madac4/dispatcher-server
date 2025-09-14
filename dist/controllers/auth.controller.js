@@ -85,7 +85,7 @@ exports.register = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) =
     // await invitation.save()
     res
         .status(201)
-        .json((0, response_types_1.SuccessResponse)(null, `User registered successfully ${role ? 'with role ' + role : ''}`));
+        .json((0, response_types_1.SuccessResponse)(null, `User registered successfully ${role !== auth_types_1.UserRole.USER ? 'with role ' + role : ''}`));
 });
 exports.login = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const { email, password } = req.body;
