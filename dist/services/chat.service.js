@@ -24,6 +24,23 @@ class ChatService {
         }, { upsert: true });
         return savedMessage;
     }
+    static async sendUserMessage(orderId, message, userId) {
+        const userMessage = new chatMessage_model_1.default({
+            orderId,
+            userId,
+            message,
+            messageType: 'text',
+            senderType: 'user',
+            isRead: false,
+        });
+        const savedMessage = await userMessage.save();
+        await orderChat_model_1.default.findOneAndUpdate({ orderId }, {
+            $push: { messages: savedMessage._id },
+            $set: { lastMessage: savedMessage._id },
+            $inc: { unreadCount: 1 },
+        }, { upsert: true });
+        return savedMessage;
+    }
     static async getChatStats(orderId) {
         const totalMessages = await chatMessage_model_1.default.countDocuments({ orderId });
         const unreadMessages = await chatMessage_model_1.default.countDocuments({

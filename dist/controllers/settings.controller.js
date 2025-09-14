@@ -51,7 +51,9 @@ exports.updateCompanyInfo = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res
     }, { new: true, runValidators: true, upsert: true }).lean();
     if (!updatedCompany)
         return next(new ErrorHandler_1.ErrorHandler('Company information not found', 404));
-    res.status(200).json((0, response_types_1.SuccessResponse)(updatedCompany.companyInfo, 'Company information updated'));
+    res
+        .status(200)
+        .json((0, response_types_1.SuccessResponse)(updatedCompany.companyInfo, 'Company information updated'));
 });
 exports.getCarrierNumbers = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const userId = req.user.userId;
@@ -64,7 +66,7 @@ exports.getCarrierNumbers = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res
 });
 exports.updateCarrierNumbers = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const userId = req.user.userId;
-    const { mcNumber, dotNumber, einNumber, iftaNumber, orNumber, kyuNumber, txNumber, tnNumber, laNumber, notes } = req.body;
+    const { mcNumber, dotNumber, einNumber, iftaNumber, orNumber, kyuNumber, txNumber, tnNumber, laNumber, notes, } = req.body;
     const settings = await settings_model_1.default.findOne({ userId });
     if (!settings) {
         const newSettings = await settings_model_1.default.create({
@@ -106,7 +108,9 @@ exports.updateCarrierNumbers = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, 
     }, { new: true }).lean();
     if (!updatedSettings)
         return next(new ErrorHandler_1.ErrorHandler('Carrier numbers not found', 404));
-    res.status(200).json((0, response_types_1.SuccessResponse)(updatedSettings.carrierNumbers, 'Carrier numbers updated'));
+    res
+        .status(200)
+        .json((0, response_types_1.SuccessResponse)(updatedSettings.carrierNumbers, 'Carrier numbers updated'));
 });
 exports.uploadCarrierFile = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const file = req.file;
@@ -147,7 +151,7 @@ exports.downloadFile = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, nex
     }).lean();
     if (!settings)
         return next(new ErrorHandler_1.ErrorHandler('File not found or access denied', 404));
-    const fileData = settings.carrierNumbers.files.find(file => file.filename === filename);
+    const fileData = settings.carrierNumbers.files.find((file) => file.filename === filename);
     if (!fileData)
         return next(new ErrorHandler_1.ErrorHandler('File metadata not found', 404));
     try {

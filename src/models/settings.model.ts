@@ -1,5 +1,5 @@
-import { model, Schema } from 'mongoose'
-import { IUserSettings } from '../types/settings.types'
+import { model, Schema } from 'mongoose';
+import { IUserSettings } from '../types/settings.types';
 
 const settingsSchema: Schema = new Schema<IUserSettings>({
   userId: { type: String, required: true, unique: true, index: true },
@@ -19,7 +19,7 @@ const settingsSchema: Schema = new Schema<IUserSettings>({
       lowercase: true,
       validate: {
         validator: function (email: string) {
-          return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/.test(email)
+          return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/.test(email);
         },
         message: (props: any) => `${props.value} is not a valid email`,
       },
@@ -45,6 +45,6 @@ const settingsSchema: Schema = new Schema<IUserSettings>({
       },
     ],
   },
-})
+});
 
-export default model<IUserSettings>('Settings', settingsSchema)
+export default model<IUserSettings>('Settings', settingsSchema);

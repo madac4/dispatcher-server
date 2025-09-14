@@ -1,23 +1,23 @@
-import { Router } from 'express'
+import { Router } from 'express';
 import {
-	forgotPassword,
-	login,
-	logout,
-	refreshToken,
-	register,
-	resetPassword,
-	updatePassword,
-} from '../controllers/authController'
-import { authMiddleware } from '../middleware/authMiddleware'
+  forgotPassword,
+  login,
+  logout,
+  refreshToken,
+  register,
+  resetPassword,
+  updatePassword,
+} from '../controllers/auth.controller';
+import { authMiddleware } from '../middleware/authMiddleware';
 
-const AuthRoutes: Router = Router()
+const AuthRoutes: Router = Router();
 
-AuthRoutes.post('/login', login)
-AuthRoutes.post('/register', register)
-AuthRoutes.post('/refresh-token', refreshToken)
-AuthRoutes.post('/reset-password', resetPassword)
-AuthRoutes.post('/logout', authMiddleware, logout)
-AuthRoutes.post('/forgot-password', forgotPassword)
-AuthRoutes.post('/update-password', authMiddleware, updatePassword)
+AuthRoutes.post('/login', login);
+AuthRoutes.post('/register', register);
+AuthRoutes.post('/refresh-token', refreshToken);
+AuthRoutes.post('/reset-password', resetPassword);
+AuthRoutes.post('/logout', authMiddleware, logout);
+AuthRoutes.post('/forgot-password', forgotPassword);
+AuthRoutes.post('/update-password', authMiddleware, updatePassword);
 
-export default AuthRoutes
+export default AuthRoutes;

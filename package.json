@@ -39,6 +39,7 @@
 		"@types/node": "^22.15.29",
 		"@types/nodemailer": "^6.4.17",
 		"@types/socket.io": "^3.0.1",
+		"prettier": "^3.4.2",
 		"ts-node": "^10.9.2",
 		"ts-node-dev": "^2.0.0",
 		"typescript": "^5.8.3"

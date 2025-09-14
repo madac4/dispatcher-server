@@ -7,7 +7,7 @@ const chatMessageSchema = new mongoose_1.Schema({
     message: { type: String, required: true },
     messageType: {
         type: String,
-        enum: ['text', 'file', 'system'],
+        enum: ['text', 'system'],
         default: 'text',
     },
     senderType: {
