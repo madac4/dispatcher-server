@@ -52,7 +52,7 @@ const userSchema = new mongoose_1.Schema({
             },
             {
                 validator: function (password) {
-                    return /[@$!%*?&]/.test(password);
+                    return /[@$!%*?&#^]/.test(password);
                 },
                 message: 'Password must contain at least one special character (@$!%*?&)',
             },
@@ -87,4 +87,5 @@ userSchema.methods.signRefreshToken = function () {
         expiresIn: '7d',
     });
 };
-exports.default = (0, mongoose_1.model)('User', userSchema);
+const User = (0, mongoose_1.model)('User', userSchema);
+exports.default = User;

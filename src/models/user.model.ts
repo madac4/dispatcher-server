@@ -50,7 +50,7 @@ const userSchema: Schema = new Schema<IUser>({
 			},
 			{
 				validator: function (password: string) {
-					return /[@$!%*?&]/.test(password)
+					return /[@$!%*?&#^]/.test(password)
 				},
 				message:
 					'Password must contain at least one special character (@$!%*?&)',
@@ -100,4 +100,5 @@ userSchema.methods.signRefreshToken = function (): string {
 	)
 }
 
-export default model<IUser>('User', userSchema)
+const User = model<IUser>('User', userSchema)
+export default User

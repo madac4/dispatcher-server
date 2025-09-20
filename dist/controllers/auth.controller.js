@@ -11,6 +11,7 @@ const authMiddleware_1 = require("../middleware/authMiddleware");
 const refresh_token_model_1 = __importDefault(require("../models/refresh-token.model"));
 const reset_token_model_1 = __importDefault(require("../models/reset-token.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
+const auth_service_1 = require("../services/auth.service");
 const auth_types_1 = require("../types/auth.types");
 const response_types_1 = require("../types/response.types");
 const ErrorHandler_1 = require("../utils/ErrorHandler");
@@ -19,73 +20,19 @@ const validators_1 = require("../utils/validators");
 exports.register = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const { email, password, role } = req.body;
     const user = (0, authMiddleware_1.decodeToken)(req);
-    // if (!inviteCode) {
-    // 	return next(new ErrorHandler('Invite code is required', 400))
-    // }
-    if (!email || !password) {
-        return next(new ErrorHandler_1.ErrorHandler('Email and password are required', 400));
-    }
-    // const emailInvitation = await Invitation.findOne({
-    // 	email,
-    // })
-    // if (!emailInvitation) {
-    // 	return next(
-    // 		new ErrorHandler(
-    // 			'You do not have an invitation on this email',
-    // 			400,
-    // 		),
-    // 	)
-    // }
-    // const invitation = await Invitation.findOne({
-    // 	code: inviteCode,
-    // 	email,
-    // 	used: false,
-    // })
-    // if (!invitation)
-    // 	return next(new ErrorHandler('Invalid or expired invite code', 400))
-    // if (invitation.expiresAt < new Date()) {
-    // 	return next(new ErrorHandler('Invite code has expired', 400))
-    // }
-    const existingUser = await user_model_1.default.findOne({ email });
-    if (existingUser)
-        return next(new ErrorHandler_1.ErrorHandler('User already exists', 400));
+    let response = null;
     if (user.role !== auth_types_1.UserRole.ADMIN && role === auth_types_1.UserRole.MODERATOR) {
         return next(new ErrorHandler_1.ErrorHandler('You are not authorized to register a moderator', 403));
     }
-    const newUser = new user_model_1.default({
-        email,
-        password,
-        role: role || auth_types_1.UserRole.USER,
-    });
-    await newUser.save();
-    if (newUser.role === auth_types_1.UserRole.MODERATOR) {
-        try {
-            const html = await (0, renderEmail_1.default)('moderatorRegistrationEmail', {
-                email,
-                password,
-                role,
-                frontendOrigin: process.env.FRONTEND_ORIGIN,
-            });
-            await nodemailer_1.default.sendMail({
-                from: `Dhruv <${process.env.EMAIL_USER}>`,
-                to: email,
-                subject: 'Moderator Registration',
-                html,
-            });
-        }
-        catch (error) {
-            await newUser.deleteOne();
-            return next(new ErrorHandler_1.ErrorHandler('Failed to send moderator registration email', 500));
-        }
+    if (!role || role === auth_types_1.UserRole.USER) {
+        await auth_service_1.AuthService.validateRegisterRequest(email, password);
+        response = await auth_service_1.AuthService.registerUser(email, password);
     }
-    // await Team.findByIdAndUpdate(invitation.teamId, {
-    // 	$addToSet: { members: user._id },
-    // })
-    // invitation.used = true
-    // await invitation.save()
-    res
-        .status(201)
-        .json((0, response_types_1.SuccessResponse)(null, `User registered successfully ${role !== auth_types_1.UserRole.USER ? 'with role ' + role : ''}`));
+    else if (user.role === auth_types_1.UserRole.MODERATOR) {
+        await auth_service_1.AuthService.validateRegisterRequest(email, password);
+        response = await auth_service_1.AuthService.registerModerator(email, password);
+    }
+    res.status(201).json(response);
 });
 exports.login = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const { email, password } = req.body;
@@ -108,9 +55,7 @@ exports.login = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
     await refreshTokenDoc.save();
-    res
-        .status(200)
-        .json((0, response_types_1.SuccessResponse)({ accessToken, refreshToken }, 'Login successful'));
+    res.status(200).json((0, response_types_1.SuccessResponse)({ accessToken, refreshToken }, 'Login successful'));
 });
 exports.refreshToken = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const { refreshToken } = req.body;
@@ -135,9 +80,7 @@ exports.refreshToken = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, nex
     if (!user)
         return next(new ErrorHandler_1.ErrorHandler('User not found', 404));
     const accessToken = user.signAccessToken();
-    res
-        .status(200)
-        .json((0, response_types_1.SuccessResponse)({ accessToken }, 'Refresh token successful'));
+    res.status(200).json((0, response_types_1.SuccessResponse)({ accessToken }, 'Refresh token successful'));
 });
 exports.forgotPassword = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const { email } = req.body;
@@ -197,7 +140,7 @@ exports.resetPassword = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, ne
 });
 exports.updatePassword = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const { userId } = req.user;
-    const { currentPassword, password, confirmPassword } = req.body;
+    const { currentPassword, password, confirmPassword, } = req.body;
     if (!currentPassword || !password || !confirmPassword)
         return next(new ErrorHandler_1.ErrorHandler('All fields are required', 400));
     if (password !== confirmPassword)
