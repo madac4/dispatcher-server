@@ -52,7 +52,7 @@ const userSchema = new mongoose_1.Schema({
             },
             {
                 validator: function (password) {
-                    return /[@$!%*?&#^]/.test(password);
+                    return /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/.test(password);
                 },
                 message: 'Password must contain at least one special character (@$!%*?&)',
             },

@@ -50,7 +50,9 @@ const userSchema: Schema = new Schema<IUser>({
 			},
 			{
 				validator: function (password: string) {
-					return /[@$!%*?&#^]/.test(password)
+					return /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/.test(
+						password,
+					)
 				},
 				message:
 					'Password must contain at least one special character (@$!%*?&)',
