@@ -37,7 +37,6 @@ export const sendMessage = CatchAsyncErrors(
 			orderId,
 			userId,
 			message,
-			isRead: false,
 		})
 
 		const savedMessage = await newMessage.save()
@@ -49,12 +48,10 @@ export const sendMessage = CatchAsyncErrors(
 				orderId,
 				messages: [savedMessage._id as any],
 				lastMessage: savedMessage._id as any,
-				unreadCount: 1,
 			})
 		} else {
 			orderChat.messages.push(savedMessage._id as any)
 			orderChat.lastMessage = savedMessage._id as any
-			orderChat.unreadCount += 1
 		}
 
 		await orderChat.save()
@@ -75,14 +72,11 @@ export const sendMessage = CatchAsyncErrors(
 
 export const getOrderMessages = CatchAsyncErrors(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const userId = req.user.id
-
 		const { orderId } = req.params
 		const page = parseInt(req.query.page as string) || 1
 		const limit = parseInt(req.query.limit as string) || 50
 		const skip = (page - 1) * limit
 
-		// add userId
 		const order = await Order.findOne({ _id: orderId })
 		if (!order) {
 			return next(
@@ -112,117 +106,6 @@ export const getOrderMessages = CatchAsyncErrors(
 	},
 )
 
-// Get all order chats for a user
-export const getUserOrderChats = async (
-	req: Request,
-	res: Response,
-	next: NextFunction,
-): Promise<void> => {
-	try {
-		const userId = req.user.id
-		if (!userId)
-			return next(new ErrorHandler('User not authenticated', 401))
-
-		const page = parseInt(req.query.page as string) || 1
-		const limit = parseInt(req.query.limit as string) || 10
-		const skip = (page - 1) * limit
-
-		// Get user's orders with chat information
-		const orders = await Order.find({ userId })
-			.sort({ updatedAt: -1 })
-			.skip(skip)
-			.limit(limit)
-			.lean()
-
-		const orderIds = orders.map(order => order._id)
-
-		// Get chat information for these orders
-		const orderChats = await OrderChat.find({ orderId: { $in: orderIds } })
-			.populate('lastMessage')
-			.lean()
-
-		// Combine order and chat information
-		const orderChatData = orders.map(order => {
-			const chat = orderChats.find(c => c.orderId === order._id)
-			return {
-				order,
-				chat: chat || null,
-				unreadCount: chat?.unreadCount || 0,
-				lastMessage: chat?.lastMessage || null,
-			}
-		})
-
-		const total = await Order.countDocuments({ userId })
-
-		res.status(200).json({
-			success: true,
-			message: 'Order chats retrieved successfully',
-			data: {
-				orderChats: orderChatData,
-				total,
-				page,
-				limit,
-				hasMore: skip + limit < total,
-			},
-		})
-	} catch (error) {
-		console.error('Error getting user order chats:', error)
-		return next(
-			new ErrorHandler(
-				'Internal server error while retrieving order chats',
-				500,
-			),
-		)
-	}
-}
-
-// Mark messages as read
-export const markMessagesAsRead = async (
-	req: Request,
-	res: Response,
-	next: NextFunction,
-): Promise<void> => {
-	try {
-		const userId = req.user.id
-		if (!userId)
-			return next(new ErrorHandler('User not authenticated', 401))
-
-		const { orderId } = req.params
-
-		// Verify order exists and user has access
-		const order = await Order.findOne({ _id: orderId, userId })
-		if (!order) {
-			return next(
-				new ErrorHandler('Order not found or access denied', 404),
-			)
-		}
-
-		// Mark all unread messages as read
-		await ChatMessage.updateMany(
-			{ orderId, isRead: false, userId: { $ne: userId } },
-			{ isRead: true },
-		)
-
-		// Update unread count in order chat
-		await OrderChat.findOneAndUpdate(
-			{ orderId },
-			{ unreadCount: 0 },
-			{ upsert: true },
-		)
-
-		res.status(200).json(SuccessResponse(null, 'Messages marked as read'))
-	} catch (error) {
-		console.error('Error marking messages as read:', error)
-		return next(
-			new ErrorHandler(
-				'Internal server error while marking messages as read',
-				500,
-			),
-		)
-	}
-}
-
-// Delete a message
 export const deleteMessage = async (
 	req: Request,
 	res: Response,
@@ -235,27 +118,23 @@ export const deleteMessage = async (
 
 		const { messageId } = req.params
 
-		// Find message and verify ownership
 		const message = await ChatMessage.findById(messageId)
 		if (!message) {
 			return next(new ErrorHandler('Message not found', 404))
 		}
 
-		// Verify user owns the message or has admin access
 		if (message.userId !== userId) {
 			return next(new ErrorHandler('Access denied', 403))
 		}
 
 		await ChatMessage.findByIdAndDelete(messageId)
 
-		// Update order chat
 		const orderChat = await OrderChat.findOne({ orderId: message.orderId })
 		if (orderChat) {
 			orderChat.messages = orderChat.messages.filter(
 				msgId => msgId.toString() !== messageId,
 			)
 
-			// Update last message if this was the last message
 			if (orderChat.lastMessage?.toString() === messageId) {
 				const lastMessage = await ChatMessage.findOne({
 					orderId: message.orderId,
@@ -279,28 +158,3 @@ export const deleteMessage = async (
 		)
 	}
 }
-
-// Get unread message count for an order
-export const getUnreadCount = CatchAsyncErrors(
-	async (req: Request, res: Response, next: NextFunction) => {
-		const userId = req.user.id
-		const { orderId } = req.params
-
-		const order = await Order.findOne({ _id: orderId })
-		if (!order) {
-			return next(
-				new ErrorHandler('Order not found or access denied', 404),
-			)
-		}
-
-		const count = await ChatMessage.countDocuments({
-			orderId,
-			isRead: false,
-			userId: { $ne: userId },
-		})
-
-		res.status(200).json(
-			SuccessResponse({ count }, 'Unread count retrieved'),
-		)
-	},
-)
