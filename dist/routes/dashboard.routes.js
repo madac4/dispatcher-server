@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const dashboard_controller_1 = require("../controllers/dashboard.controller");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const rolesMiddleware_1 = require("../middleware/rolesMiddleware");
+const auth_types_1 = require("../types/auth.types");
+const DashboardRoutes = (0, express_1.Router)();
+DashboardRoutes.post('/cards', authMiddleware_1.authMiddleware, (0, rolesMiddleware_1.rolesMiddleware)([auth_types_1.UserRole.ADMIN]), dashboard_controller_1.getAdminDashboardCards);
+exports.default = DashboardRoutes;

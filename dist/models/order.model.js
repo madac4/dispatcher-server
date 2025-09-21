@@ -77,4 +77,5 @@ orderSchema.pre('save', async function (next) {
     }
     next();
 });
-exports.default = (0, mongoose_1.model)('Order', orderSchema);
+const Order = (0, mongoose_1.model)('Order', orderSchema);
+exports.default = Order;

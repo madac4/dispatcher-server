@@ -90,4 +90,5 @@ orderSchema.pre('save', async function (next) {
 	next()
 })
 
-export default model<IOrder>('Order', orderSchema)
+const Order = model<IOrder>('Order', orderSchema)
+export default Order

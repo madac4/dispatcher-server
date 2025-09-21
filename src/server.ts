@@ -6,6 +6,7 @@ import { createServer } from 'http'
 import connectDB from './config/db'
 import AuthRoutes from './routes/auth.routes'
 import ChatRoutes from './routes/chat.routes'
+import DashboardRoutes from './routes/dashboard.routes'
 import InvitationRoutes from './routes/invitation.routes'
 import OrderRoutes from './routes/order.routes'
 import SettingsRoutes from './routes/settings.routes'
@@ -52,8 +53,9 @@ app.get('/health', (req: Request, res: Response) => {
 
 const jsonParser = bodyParser.json({ limit: '50mb' })
 
-app.use('/api/authorization', jsonParser, AuthRoutes)
 app.use('/api/invitation', jsonParser, InvitationRoutes)
+app.use('/api/dashboard', jsonParser, DashboardRoutes)
+app.use('/api/authorization', jsonParser, AuthRoutes)
 app.use('/api/trailers', jsonParser, TrailerRoutes)
 app.use('/api/trucks', jsonParser, TruckRoutes)
 app.use('/api/orders', jsonParser, OrderRoutes)

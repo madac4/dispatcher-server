@@ -9,7 +9,7 @@ const validatePassword = (password) => {
     return (/[A-Z]/.test(password) &&
         /[a-z]/.test(password) &&
         /\d/.test(password) &&
-        /[@$!%*?&]/.test(password) &&
+        /[@$!%*?&#^]/.test(password) &&
         password.length >= 8);
 };
 exports.validatePassword = validatePassword;
