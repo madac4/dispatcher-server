@@ -7,7 +7,7 @@ export const validatePassword = (password: string) => {
 		/[A-Z]/.test(password) &&
 		/[a-z]/.test(password) &&
 		/\d/.test(password) &&
-		/[@$!%*?&#^]/.test(password) &&
+		/[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/.test(password) &&
 		password.length >= 8
 	)
 }
