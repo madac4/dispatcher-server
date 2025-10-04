@@ -31,6 +31,12 @@ class OrderDTO {
         this.createdAt = model.createdAt;
         this.updatedAt = model.updatedAt;
         this.axleConfigs = model.axleConfigs || [];
+        this.moderator = model.moderatorId
+            ? {
+                id: model.moderatorId._id,
+                email: model.moderatorId.email,
+            }
+            : null;
         if (model.truckId) {
             const truck = model.truckId;
             this.truck = {
@@ -91,6 +97,12 @@ class ModeratorOrderDTO {
         this.createdAt = model.createdAt;
         this.updatedAt = model.updatedAt;
         this.axleConfigs = model.axleConfigs || [];
+        this.moderator = model.moderatorId
+            ? {
+                id: model.moderatorId._id,
+                email: model.moderatorId.email,
+            }
+            : null;
         if (model.truckId) {
             const truck = model.truckId;
             this.truck = {
@@ -119,6 +131,7 @@ class ModeratorOrderDTO {
                 type: trailer.type,
             };
         }
+        ;
         ((this.carrierNumbers = {
             mcNumber: settings.carrierNumbers.mcNumber,
             dotNumber: settings.carrierNumbers.dotNumber,

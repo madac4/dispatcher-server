@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteFile = exports.downloadFile = exports.getCarrierFiles = exports.uploadCarrierFile = exports.updateCarrierNumbers = exports.getCarrierNumbers = exports.updateCompanyInfo = exports.getCompanySettings = void 0;
 const settings_model_1 = __importDefault(require("../models/settings.model"));
 const gridfs_service_1 = require("../services/gridfs.service");
+const auth_types_1 = require("../types/auth.types");
 const response_types_1 = require("../types/response.types");
 const ErrorHandler_1 = require("../utils/ErrorHandler");
 const validators_1 = require("../utils/validators");
@@ -29,7 +30,17 @@ exports.updateCompanyInfo = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res
     if (!settings) {
         const newSettings = await settings_model_1.default.create({
             userId: req.user.userId,
-            companyInfo: { name, dba, address, city, state, zip, phone, fax, email },
+            companyInfo: {
+                name,
+                dba,
+                address,
+                city,
+                state,
+                zip,
+                phone,
+                fax,
+                email,
+            },
         });
         res.status(201).json((0, response_types_1.SuccessResponse)(newSettings.companyInfo, 'Company information saved'));
         return;
@@ -51,9 +62,7 @@ exports.updateCompanyInfo = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res
     }, { new: true, runValidators: true, upsert: true }).lean();
     if (!updatedCompany)
         return next(new ErrorHandler_1.ErrorHandler('Company information not found', 404));
-    res
-        .status(200)
-        .json((0, response_types_1.SuccessResponse)(updatedCompany.companyInfo, 'Company information updated'));
+    res.status(200).json((0, response_types_1.SuccessResponse)(updatedCompany.companyInfo, 'Company information updated'));
 });
 exports.getCarrierNumbers = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const userId = req.user.userId;
@@ -108,9 +117,7 @@ exports.updateCarrierNumbers = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, 
     }, { new: true }).lean();
     if (!updatedSettings)
         return next(new ErrorHandler_1.ErrorHandler('Carrier numbers not found', 404));
-    res
-        .status(200)
-        .json((0, response_types_1.SuccessResponse)(updatedSettings.carrierNumbers, 'Carrier numbers updated'));
+    res.status(200).json((0, response_types_1.SuccessResponse)(updatedSettings.carrierNumbers, 'Carrier numbers updated'));
 });
 exports.uploadCarrierFile = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const file = req.file;
@@ -123,7 +130,14 @@ exports.uploadCarrierFile = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res
         return next(new ErrorHandler_1.ErrorHandler('Settings not found', 404));
     try {
         const fileData = await (0, gridfs_service_1.uploadFile)(file);
-        const updatedSettings = await settings_model_1.default.findOneAndUpdate({ userId }, { $push: { 'carrierNumbers.files': { ...fileData, originalname: file.originalname } } }, { new: true }).lean();
+        const updatedSettings = await settings_model_1.default.findOneAndUpdate({ userId }, {
+            $push: {
+                'carrierNumbers.files': {
+                    ...fileData,
+                    originalname: file.originalname,
+                },
+            },
+        }, { new: true }).lean();
         if (!updatedSettings)
             return next(new ErrorHandler_1.ErrorHandler('Failed to update settings', 500));
         res.status(200).json((0, response_types_1.SuccessResponse)(null, 'File uploaded successfully'));
@@ -143,15 +157,19 @@ exports.getCarrierFiles = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, 
     res.status(200).json((0, response_types_1.SuccessResponse)(files, 'Files fetched successfully'));
 });
 exports.downloadFile = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
-    const { filename } = req.params;
-    const userId = req.user.userId;
-    const settings = await settings_model_1.default.findOne({
-        userId,
+    const { filename, userId } = req.params;
+    const { id, role } = req.user;
+    let settingsQuery = {
+        userId: id,
         'carrierNumbers.files.filename': filename,
-    }).lean();
+    };
+    if (role === auth_types_1.UserRole.ADMIN || role === auth_types_1.UserRole.MODERATOR) {
+        settingsQuery.userId = userId;
+    }
+    const settings = await settings_model_1.default.findOne(settingsQuery).lean();
     if (!settings)
         return next(new ErrorHandler_1.ErrorHandler('File not found or access denied', 404));
-    const fileData = settings.carrierNumbers.files.find((file) => file.filename === filename);
+    const fileData = settings.carrierNumbers.files.find(file => file.filename === filename);
     if (!fileData)
         return next(new ErrorHandler_1.ErrorHandler('File metadata not found', 404));
     try {

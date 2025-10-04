@@ -12,7 +12,7 @@ const db_1 = __importDefault(require("./config/db"));
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const chat_routes_1 = __importDefault(require("./routes/chat.routes"));
 const dashboard_routes_1 = __importDefault(require("./routes/dashboard.routes"));
-const invitation_routes_1 = __importDefault(require("./routes/invitation.routes"));
+const notification_routes_1 = __importDefault(require("./routes/notification.routes"));
 const order_routes_1 = __importDefault(require("./routes/order.routes"));
 const settings_routes_1 = __importDefault(require("./routes/settings.routes"));
 const trailer_routes_1 = __importDefault(require("./routes/trailer.routes"));
@@ -47,20 +47,27 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 const jsonParser = body_parser_1.default.json({ limit: '50mb' });
-app.use('/api/invitation', jsonParser, invitation_routes_1.default);
+app.use('/api/notifications', jsonParser, notification_routes_1.default);
 app.use('/api/dashboard', jsonParser, dashboard_routes_1.default);
 app.use('/api/authorization', jsonParser, auth_routes_1.default);
+app.use('/api/settings', jsonParser, settings_routes_1.default);
 app.use('/api/trailers', jsonParser, trailer_routes_1.default);
 app.use('/api/trucks', jsonParser, truck_routes_1.default);
 app.use('/api/orders', jsonParser, order_routes_1.default);
 app.use('/api/chat', jsonParser, chat_routes_1.default);
-app.use('/api/settings', (req, res, next) => {
-    if (req.path.includes('/files') &&
-        (req.method === 'POST' || req.method === 'PUT')) {
-        return next();
-    }
-    return jsonParser(req, res, next);
-}, settings_routes_1.default);
+// app.use(
+// 	'/api/settings',
+// 	(req, res, next) => {
+// 		if (
+// 			req.path.includes('/files') &&
+// 			(req.method === 'POST' || req.method === 'PUT')
+// 		) {
+// 			return next()
+// 		}
+// 		return jsonParser(req, res, next)
+// 	},
+// 	SettingsRoutes,
+// )
 app.use(ErrorHandler_1.globalErrorHandler);
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);

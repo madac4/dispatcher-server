@@ -8,6 +8,7 @@ import ResetToken from '../models/reset-token.model'
 import User from '../models/user.model'
 import { AuthService } from '../services/auth.service'
 import {
+	ConfirmEmailRequest,
 	ForgotPasswordRequest,
 	JwtDTO,
 	LoginRequest,
@@ -42,7 +43,10 @@ export const register = CatchAsyncErrors(
 		if (!role || role === UserRole.USER) {
 			await AuthService.validateRegisterRequest(email, password)
 			response = await AuthService.registerUser(email, password)
-		} else if (user.role === UserRole.MODERATOR) {
+		} else if (
+			user.role === UserRole.ADMIN &&
+			role === UserRole.MODERATOR
+		) {
 			await AuthService.validateRegisterRequest(email, password)
 			response = await AuthService.registerModerator(email, password)
 		}
@@ -75,6 +79,14 @@ export const login = CatchAsyncErrors(
 			return next(
 				new ErrorHandler(
 					'You do not have an account, please register',
+					400,
+				),
+			)
+
+		if (!user.isEmailConfirmed)
+			return next(
+				new ErrorHandler(
+					'Please confirm your email address before logging in',
 					400,
 				),
 			)
@@ -173,9 +185,9 @@ export const forgotPassword = CatchAsyncErrors(
 				frontendOrigin: process.env.FRONTEND_ORIGIN,
 			})
 			await transporter.sendMail({
-				from: `Dhruv <${process.env.EMAIL_USER}>`,
+				from: `Click Permit <${process.env.EMAIL_USER}>`,
 				to: email,
-				subject: 'Reset Your Dhruv Password',
+				subject: 'Reset Your Click Permit Password',
 				html,
 			})
 		} catch (error) {
@@ -237,7 +249,7 @@ export const resetPassword = CatchAsyncErrors(
 
 export const updatePassword = CatchAsyncErrors(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const { userId }: { userId: string } = req.user
+		const { userId } = req.user
 		const {
 			currentPassword,
 			password,
@@ -246,31 +258,17 @@ export const updatePassword = CatchAsyncErrors(
 
 		if (!currentPassword || !password || !confirmPassword)
 			return next(new ErrorHandler('All fields are required', 400))
+
 		if (password !== confirmPassword)
 			return next(new ErrorHandler('Passwords do not match', 400))
 
-		const user = await User.findById(userId).select('+password')
-		if (!user) return next(new ErrorHandler('User not found', 404))
-
-		const isMatch = await user.comparePassword(currentPassword)
-		if (!isMatch)
-			return next(new ErrorHandler('Invalid current password', 400))
-
-		const isSamePassword = await user.comparePassword(password)
-		if (isSamePassword)
-			return next(
-				new ErrorHandler(
-					'New password cannot be the same as the old password',
-					400,
-				),
-			)
-
-		user.password = password
-		await user.save()
-
-		res.status(200).json(
-			SuccessResponse(null, 'Password changed successfully'),
+		const response = await AuthService.updatePassword(
+			userId,
+			currentPassword,
+			password,
 		)
+
+		res.status(200).json(response)
 	},
 )
 
@@ -287,5 +285,29 @@ export const logout = CatchAsyncErrors(
 		await RefreshToken.deleteMany({ userId })
 
 		res.status(200).json(SuccessResponse(null, 'Logout successful'))
+	},
+)
+
+export const confirmEmail = CatchAsyncErrors(
+	async (req: Request, res: Response, next: NextFunction) => {
+		const { token }: ConfirmEmailRequest = req.body
+
+		if (!token) return next(new ErrorHandler('Token is required', 400))
+
+		const response = await AuthService.confirmEmail(token)
+
+		res.status(200).json(response)
+	},
+)
+
+export const resendConfirmationEmail = CatchAsyncErrors(
+	async (req: Request, res: Response, next: NextFunction) => {
+		const { email }: { email: string } = req.body
+
+		if (!email) return next(new ErrorHandler('Email is required', 400))
+
+		const response = await AuthService.resendConfirmationEmail(email)
+
+		res.status(200).json(response)
 	},
 )

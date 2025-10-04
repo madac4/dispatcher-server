@@ -16,6 +16,7 @@ router.post('/create', authMiddleware_1.authMiddleware, (0, rolesMiddleware_1.ro
 router.post('/duplicate/:orderId', authMiddleware_1.authMiddleware, orderController_1.duplicateOrder);
 router.get('/:orderNumber', authMiddleware_1.authMiddleware, orderController_1.getOrderByNumber);
 router.get('/:orderId/files/:filename', authMiddleware_1.authMiddleware, orderController_1.downloadOrderFile);
+router.post('/:orderId/moderate', authMiddleware_1.authMiddleware, (0, rolesMiddleware_1.rolesMiddleware)([auth_types_1.UserRole.ADMIN, auth_types_1.UserRole.MODERATOR]), orderController_1.moderateOrder);
 router.put('/:orderId/status', authMiddleware_1.authMiddleware, (0, rolesMiddleware_1.rolesMiddleware)([auth_types_1.UserRole.ADMIN]), orderController_1.updateOrderStatus);
 // File management routes
 router.post('/:orderId/files', authMiddleware_1.authMiddleware, multer_1.default.single('file'), orderController_1.uploadOrderFile);

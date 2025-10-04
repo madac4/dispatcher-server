@@ -63,6 +63,10 @@ const userSchema = new mongoose_1.Schema({
         enum: auth_types_1.UserRole,
         default: auth_types_1.UserRole.USER,
     },
+    isEmailConfirmed: {
+        type: Boolean,
+        default: false,
+    },
     createdAt: {
         type: Date,
         default: Date.now,

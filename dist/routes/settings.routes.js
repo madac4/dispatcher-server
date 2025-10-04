@@ -17,6 +17,6 @@ SettingsRoutes.put('/carrier-numbers', authMiddleware_1.authMiddleware, settings
 // File management routes - explicitly set no parsing before multer
 SettingsRoutes.post('/carrier-numbers/files', authMiddleware_1.authMiddleware, multer_1.default.single('file'), settings_controller_1.uploadCarrierFile);
 SettingsRoutes.get('/carrier-numbers/files', authMiddleware_1.authMiddleware, settings_controller_1.getCarrierFiles);
-SettingsRoutes.get('/carrier-numbers/files/:filename', authMiddleware_1.authMiddleware, settings_controller_1.downloadFile);
+SettingsRoutes.get('/carrier-numbers/files/:filename/:userId', authMiddleware_1.authMiddleware, settings_controller_1.downloadFile);
 SettingsRoutes.delete('/carrier-numbers/files/:filename', authMiddleware_1.authMiddleware, settings_controller_1.deleteFile);
 exports.default = SettingsRoutes;

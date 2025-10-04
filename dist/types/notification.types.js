@@ -1,0 +1,27 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.NotificationStatus = exports.NotificationPriority = exports.NotificationType = void 0;
+var NotificationType;
+(function (NotificationType) {
+    NotificationType["ORDER_CREATED"] = "order_created";
+    NotificationType["ORDER_UPDATED"] = "order_updated";
+    NotificationType["ORDER_DELETED"] = "order_deleted";
+    NotificationType["NEW_MESSAGE"] = "new_message";
+    NotificationType["USER_JOINED"] = "user_joined";
+    NotificationType["FILE_UPLOADED"] = "file_uploaded";
+    NotificationType["FILE_DELETED"] = "file_deleted";
+    NotificationType["SYSTEM_ANNOUNCEMENT"] = "system_announcement";
+})(NotificationType || (exports.NotificationType = NotificationType = {}));
+var NotificationPriority;
+(function (NotificationPriority) {
+    NotificationPriority["LOW"] = "low";
+    NotificationPriority["MEDIUM"] = "medium";
+    NotificationPriority["HIGH"] = "high";
+    NotificationPriority["URGENT"] = "urgent";
+})(NotificationPriority || (exports.NotificationPriority = NotificationPriority = {}));
+var NotificationStatus;
+(function (NotificationStatus) {
+    NotificationStatus["UNREAD"] = "unread";
+    NotificationStatus["READ"] = "read";
+    NotificationStatus["ARCHIVED"] = "archived";
+})(NotificationStatus || (exports.NotificationStatus = NotificationStatus = {}));
