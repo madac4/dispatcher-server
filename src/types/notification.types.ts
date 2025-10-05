@@ -12,13 +12,6 @@ export enum NotificationType {
 	SYSTEM_ANNOUNCEMENT = 'system_announcement',
 }
 
-export enum NotificationPriority {
-	LOW = 'low',
-	MEDIUM = 'medium',
-	HIGH = 'high',
-	URGENT = 'urgent',
-}
-
 export enum NotificationStatus {
 	UNREAD = 'unread',
 	READ = 'read',
@@ -27,10 +20,9 @@ export enum NotificationStatus {
 
 export interface INotification {
 	_id?: string
-	recipientId: string[] | IUser[]
+	recipientId: string | IUser
 	senderId?: string | IUser
 	type: NotificationType
-	priority: NotificationPriority
 	status: NotificationStatus
 	title: string
 	message: string
@@ -59,10 +51,9 @@ export interface INotificationModel extends Model<INotification> {
 }
 
 export interface INotificationCreateRequest {
-	recipientId: string[] | IUser[]
+	recipientId: string | IUser
 	senderId?: string
 	type: NotificationType
-	priority?: NotificationPriority
 	title: string
 	message: string
 	metadata?: {
@@ -85,14 +76,6 @@ export interface INotificationUpdateRequest {
 }
 
 export interface INotificationQuery {
-	recipientId?: string[] | IUser[]
-	type?: NotificationType
-	priority?: NotificationPriority
-	status?: NotificationStatus
-	page?: number
-	limit?: number
-	sortBy?: 'createdAt' | 'priority' | 'status'
-	sortOrder?: 'asc' | 'desc'
 	unreadOnly?: boolean
 }
 
@@ -100,7 +83,6 @@ export interface INotificationStats {
 	total: number
 	unread: number
 	byType: Record<NotificationType, number>
-	byPriority: Record<NotificationPriority, number>
 }
 
 export interface INotificationResponse {

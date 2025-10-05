@@ -2,7 +2,6 @@ import { model, Schema } from 'mongoose'
 import {
 	INotification,
 	INotificationModel,
-	NotificationPriority,
 	NotificationStatus,
 	NotificationType,
 } from '../types/notification.types'
@@ -10,7 +9,7 @@ import {
 const notificationSchema = new Schema<INotification, INotificationModel>(
 	{
 		recipientId: {
-			type: [String],
+			type: String,
 			required: true,
 			ref: 'User',
 			index: true,
@@ -24,12 +23,6 @@ const notificationSchema = new Schema<INotification, INotificationModel>(
 			type: String,
 			enum: Object.values(NotificationType),
 			required: true,
-			index: true,
-		},
-		priority: {
-			type: String,
-			enum: Object.values(NotificationPriority),
-			default: NotificationPriority.MEDIUM,
 			index: true,
 		},
 		status: {
@@ -76,7 +69,6 @@ const notificationSchema = new Schema<INotification, INotificationModel>(
 // Compound indexes for efficient querying
 notificationSchema.index({ recipientId: 1, status: 1, createdAt: -1 })
 notificationSchema.index({ recipientId: 1, type: 1, createdAt: -1 })
-notificationSchema.index({ recipientId: 1, priority: 1, createdAt: -1 })
 notificationSchema.index({ recipientId: 1, unread: 1, createdAt: -1 })
 
 // Index for metadata queries
@@ -133,12 +125,6 @@ notificationSchema.statics.getUserStats = async function (recipientId: string) {
 						count: 1,
 					},
 				},
-				byPriority: {
-					$push: {
-						priority: '$priority',
-						count: 1,
-					},
-				},
 			},
 		},
 		{
@@ -157,18 +143,6 @@ notificationSchema.statics.getUserStats = async function (recipientId: string) {
 						},
 					},
 				},
-				byPriority: {
-					$arrayToObject: {
-						$map: {
-							input: '$byPriority',
-							as: 'item',
-							in: {
-								k: '$$item.priority',
-								v: { $sum: '$$item.count' },
-							},
-						},
-					},
-				},
 			},
 		},
 	])
@@ -178,12 +152,10 @@ notificationSchema.statics.getUserStats = async function (recipientId: string) {
 			total: 0,
 			unread: 0,
 			byType: {},
-			byPriority: {},
 		}
 	)
 }
 
-// Static method to mark multiple notifications as read
 notificationSchema.statics.markAsRead = async function (
 	notificationIds: string[],
 	recipientId: string,

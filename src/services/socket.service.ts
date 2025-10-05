@@ -196,49 +196,17 @@ export class SocketService {
 		console.log(`Order update broadcasted to room: ${orderId}`)
 	}
 
-	// Send notification to specific user
 	sendNotification(userId: string, notification: any) {
 		if (!this.io) return
 
 		const userSockets = this.userSockets.get(userId) || []
+
 		userSockets.forEach(socketId => {
 			this.io!.to(socketId.id).emit('notification', notification)
 		})
 
 		console.log(`Notification sent to user: ${userId}`)
 	}
-
-	// Get connected users for an order
-	getOrderUsers(orderId: string): string[] {
-		return this.orderRooms.get(orderId) || []
-	}
-
-	// Get user's socket connections
-	getUserSockets(userId: string): { id: string; email: string }[] {
-		return this.userSockets.get(userId) || []
-	}
-
-	// Check if user is online
-	isUserOnline(userId: string): boolean {
-		const userSockets = this.userSockets.get(userId) || []
-		return userSockets.length > 0
-	}
-
-	// Get online users for multiple orders
-	getOnlineUsersForOrders(orderIds: string[]): Map<string, string[]> {
-		const result = new Map<string, string[]>()
-
-		orderIds.forEach(orderId => {
-			const users = this.orderRooms.get(orderId) || []
-			const onlineUsers = users.filter(userId =>
-				this.isUserOnline(userId),
-			)
-			result.set(orderId, onlineUsers)
-		})
-
-		return result
-	}
 }
 
-// Export singleton instance
 export const socketService = new SocketService()

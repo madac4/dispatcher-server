@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NotificationStatus = exports.NotificationPriority = exports.NotificationType = void 0;
+exports.NotificationStatus = exports.NotificationType = void 0;
 var NotificationType;
 (function (NotificationType) {
     NotificationType["ORDER_CREATED"] = "order_created";
@@ -12,13 +12,6 @@ var NotificationType;
     NotificationType["FILE_DELETED"] = "file_deleted";
     NotificationType["SYSTEM_ANNOUNCEMENT"] = "system_announcement";
 })(NotificationType || (exports.NotificationType = NotificationType = {}));
-var NotificationPriority;
-(function (NotificationPriority) {
-    NotificationPriority["LOW"] = "low";
-    NotificationPriority["MEDIUM"] = "medium";
-    NotificationPriority["HIGH"] = "high";
-    NotificationPriority["URGENT"] = "urgent";
-})(NotificationPriority || (exports.NotificationPriority = NotificationPriority = {}));
 var NotificationStatus;
 (function (NotificationStatus) {
     NotificationStatus["UNREAD"] = "unread";

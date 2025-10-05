@@ -4,7 +4,7 @@ const mongoose_1 = require("mongoose");
 const notification_types_1 = require("../types/notification.types");
 const notificationSchema = new mongoose_1.Schema({
     recipientId: {
-        type: [String],
+        type: String,
         required: true,
         ref: 'User',
         index: true,
@@ -18,12 +18,6 @@ const notificationSchema = new mongoose_1.Schema({
         type: String,
         enum: Object.values(notification_types_1.NotificationType),
         required: true,
-        index: true,
-    },
-    priority: {
-        type: String,
-        enum: Object.values(notification_types_1.NotificationPriority),
-        default: notification_types_1.NotificationPriority.MEDIUM,
         index: true,
     },
     status: {
@@ -67,7 +61,6 @@ const notificationSchema = new mongoose_1.Schema({
 // Compound indexes for efficient querying
 notificationSchema.index({ recipientId: 1, status: 1, createdAt: -1 });
 notificationSchema.index({ recipientId: 1, type: 1, createdAt: -1 });
-notificationSchema.index({ recipientId: 1, priority: 1, createdAt: -1 });
 notificationSchema.index({ recipientId: 1, unread: 1, createdAt: -1 });
 // Index for metadata queries
 notificationSchema.index({ 'metadata.orderId': 1 });
@@ -116,12 +109,6 @@ notificationSchema.statics.getUserStats = async function (recipientId) {
                         count: 1,
                     },
                 },
-                byPriority: {
-                    $push: {
-                        priority: '$priority',
-                        count: 1,
-                    },
-                },
             },
         },
         {
@@ -140,18 +127,6 @@ notificationSchema.statics.getUserStats = async function (recipientId) {
                         },
                     },
                 },
-                byPriority: {
-                    $arrayToObject: {
-                        $map: {
-                            input: '$byPriority',
-                            as: 'item',
-                            in: {
-                                k: '$$item.priority',
-                                v: { $sum: '$$item.count' },
-                            },
-                        },
-                    },
-                },
             },
         },
     ]);
@@ -159,10 +134,8 @@ notificationSchema.statics.getUserStats = async function (recipientId) {
         total: 0,
         unread: 0,
         byType: {},
-        byPriority: {},
     });
 };
-// Static method to mark multiple notifications as read
 notificationSchema.statics.markAsRead = async function (notificationIds, recipientId) {
     return this.updateMany({
         _id: { $in: notificationIds },

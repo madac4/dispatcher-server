@@ -13,6 +13,7 @@ import {
 	getFile,
 	uploadFile,
 } from '../services/gridfs.service'
+import { notificationService } from '../services/notification.service'
 import { socketService } from '../services/socket.service'
 import { UserRole } from '../types/auth.types'
 import {
@@ -116,6 +117,10 @@ export const createOrder = CatchAsyncErrors(
 
 		const savedOrder = await newOrder.save()
 
+		if (!savedOrder) {
+			return next(new ErrorHandler('Failed to create order', 500))
+		}
+
 		if (files && files.length > 0) {
 			const uploadedFiles = []
 
@@ -144,6 +149,12 @@ export const createOrder = CatchAsyncErrors(
 			savedOrder._id!.toString(),
 			`New order #${savedOrder.orderNumber} has been created. Status: ${formatStatus(savedOrder.status)}`,
 			'system',
+		)
+
+		await notificationService.notifyOrderCreated(
+			savedOrder._id!.toString(),
+			savedOrder.orderNumber!,
+			userId,
 		)
 
 		if (orderData.messages) {

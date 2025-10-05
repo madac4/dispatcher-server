@@ -9,6 +9,7 @@ const order_model_1 = __importDefault(require("../models/order.model"));
 const settings_model_1 = __importDefault(require("../models/settings.model"));
 const chat_service_1 = require("../services/chat.service");
 const gridfs_service_1 = require("../services/gridfs.service");
+const notification_service_1 = require("../services/notification.service");
 const socket_service_1 = require("../services/socket.service");
 const auth_types_1 = require("../types/auth.types");
 const order_types_1 = require("../types/order.types");
@@ -80,6 +81,9 @@ exports.createOrder = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next
             : orderData.axleConfigs || [],
     });
     const savedOrder = await newOrder.save();
+    if (!savedOrder) {
+        return next(new ErrorHandler_1.ErrorHandler('Failed to create order', 500));
+    }
     if (files && files.length > 0) {
         const uploadedFiles = [];
         for (const file of files) {
@@ -99,6 +103,7 @@ exports.createOrder = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next
         }
     }
     await chat_service_1.ChatService.sendSystemMessage(savedOrder._id.toString(), `New order #${savedOrder.orderNumber} has been created. Status: ${(0, order_types_1.formatStatus)(savedOrder.status)}`, 'system');
+    await notification_service_1.notificationService.notifyOrderCreated(savedOrder._id.toString(), savedOrder.orderNumber, userId);
     if (orderData.messages) {
         const messages = (typeof orderData.messages === 'string'
             ? JSON.parse(orderData.messages)
