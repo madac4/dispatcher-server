@@ -12,7 +12,7 @@ exports.EmailService = {
         try {
             const html = await (0, renderEmail_1.default)(template, data);
             await nodemailer_1.default.sendMail({
-                from: `Click Permit <${process.env.EMAIL_USER}>`,
+                from: `Click Permit <${process.env.ADMIN_EMAIL}>`,
                 to: to,
                 subject: subject,
                 html,

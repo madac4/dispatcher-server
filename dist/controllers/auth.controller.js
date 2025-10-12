@@ -105,7 +105,7 @@ exports.forgotPassword = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, n
             frontendOrigin: process.env.FRONTEND_ORIGIN,
         });
         await nodemailer_1.default.sendMail({
-            from: `Click Permit <${process.env.EMAIL_USER}>`,
+            from: `Click Permit <${process.env.ADMIN_EMAIL}>`,
             to: email,
             subject: 'Reset Your Click Permit Password',
             html,

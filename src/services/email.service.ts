@@ -8,7 +8,7 @@ export const EmailService = {
 			const html = await renderEmail(template, data)
 
 			await transporter.sendMail({
-				from: `Click Permit <${process.env.EMAIL_USER}>`,
+				from: `Click Permit <${process.env.ADMIN_EMAIL}>`,
 				to: to,
 				subject: subject,
 				html,

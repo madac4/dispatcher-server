@@ -152,7 +152,7 @@ export const AuthService = {
 				frontendOrigin: process.env.FRONTEND_ORIGIN,
 			})
 			await transporter.sendMail({
-				from: `Click Permit <${process.env.EMAIL_USER}>`,
+				from: `Click Permit <${process.env.ADMIN_EMAIL}>`,
 				to: email,
 				subject: 'Confirm Your Click Permit Account',
 				html,

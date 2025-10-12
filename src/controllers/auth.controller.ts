@@ -185,7 +185,7 @@ export const forgotPassword = CatchAsyncErrors(
 				frontendOrigin: process.env.FRONTEND_ORIGIN,
 			})
 			await transporter.sendMail({
-				from: `Click Permit <${process.env.EMAIL_USER}>`,
+				from: `Click Permit <${process.env.ADMIN_EMAIL}>`,
 				to: email,
 				subject: 'Reset Your Click Permit Password',
 				html,
