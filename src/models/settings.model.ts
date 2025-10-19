@@ -28,9 +28,9 @@ const settingsSchema: Schema = new Schema<IUserSettings>({
 		},
 	},
 	carrierNumbers: {
-		mcNumber: { type: String, required: true },
-		dotNumber: { type: String, required: true },
-		einNumber: { type: String, required: true },
+		mcNumber: { type: String },
+		dotNumber: { type: String },
+		einNumber: { type: String },
 		iftaNumber: { type: String },
 		orNumber: { type: String },
 		kyuNumber: { type: String },

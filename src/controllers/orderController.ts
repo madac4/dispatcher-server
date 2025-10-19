@@ -200,6 +200,7 @@ export const moderateOrder = CatchAsyncErrors(
 			return next(new ErrorHandler('User settings not found', 404))
 
 		const orderDTO = new ModeratorOrderDTO(order, userSettings)
+		await notificationService.notifyOrderModerated(orderId, userId)
 
 		res.status(200).json(
 			SuccessResponse(orderDTO, 'Order moderated successfully'),
@@ -263,9 +264,11 @@ export const getOrders = CatchAsyncErrors(
 			.limit(limit)
 			.populate('truckId', 'unitNumber year make licencePlate state')
 			.populate('trailerId', 'unitNumber year make licencePlate state')
+			.populate('userId', 'email')
 			.lean()
 
 		const totalItems = await Order.countDocuments(query)
+
 		const orderDtos = orders.map(
 			order => new PaginatedOrderDTO(order as IOrder),
 		)
@@ -453,8 +456,17 @@ export const uploadOrderFile = CatchAsyncErrors(
 			{ new: true },
 		).lean()
 
+		console.log(updatedOrder)
+
 		if (!updatedOrder)
 			return next(new ErrorHandler('Failed to update order', 500))
+
+		await notificationService.notifyOrderFileUploaded(
+			orderId,
+			user.id,
+			user.email,
+			file.originalname,
+		)
 
 		res.status(200).json(
 			SuccessResponse(updatedOrder, 'File uploaded successfully'),

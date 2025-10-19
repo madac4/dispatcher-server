@@ -1,6 +1,7 @@
 import Notification from '../models/notification.model'
+import Order from '../models/order.model'
 import User from '../models/user.model'
-import { UserRole } from '../types/auth.types'
+import { IUser, UserRole } from '../types/auth.types'
 import {
 	INotification,
 	INotificationCreateRequest,
@@ -18,6 +19,7 @@ import {
 	PaginationQuery,
 } from '../types/response.types'
 import { ErrorHandler } from '../utils/ErrorHandler'
+import { EmailService } from './email.service'
 import { socketService } from './socket.service'
 
 export class NotificationService {
@@ -53,7 +55,7 @@ export class NotificationService {
 				role: { $in: [UserRole.ADMIN, UserRole.MODERATOR] },
 			}).select('_id email')
 
-			if (adminsAndModerators.length === 0) {
+			if (!adminsAndModerators.length) {
 				console.log('No admins or moderators found to notify')
 				return
 			}
@@ -83,6 +85,145 @@ export class NotificationService {
 					`Order creation notification sent to admin/moderator ${id}`,
 				)
 			})
+
+			const emailData = {
+				orderNumber,
+				actionUrl: `${process.env.FRONTEND_ORIGIN}/dashboard/orders/${orderNumber}`,
+				actionText: 'View Order',
+				title: `New Order Created - #${orderNumber}`,
+			}
+
+			if (!process.env.ADMIN_EMAIL) {
+				throw new ErrorHandler('Admin email not found', 500)
+			}
+
+			await EmailService.sendEmail(
+				'newOrderEmail',
+				emailData,
+				process.env.ADMIN_EMAIL,
+				emailData.title,
+			)
+		} catch (error: any) {
+			console.error('Failed to send order creation notification:', error)
+		}
+	}
+
+	async notifyOrderModerated(
+		orderId: string,
+		moderatorId: string,
+	): Promise<void> {
+		try {
+			const order = await Order.findById(orderId).populate(
+				'userId',
+				'email',
+			)
+			const moderator = await User.findById(moderatorId)
+
+			if (!order) {
+				throw new ErrorHandler('Order not found', 404)
+			}
+
+			const orderUser = order.userId as IUser
+
+			const notificationData: INotificationCreateRequest = {
+				recipientId: orderUser._id,
+				senderId: moderatorId,
+				type: NotificationType.ORDER_UPDATED,
+				title: `Order #${order.orderNumber} is now moderated`,
+				message: `Your order is now moderated by ${moderator?.email}.`,
+				metadata: {
+					orderId,
+					moderatorId,
+				},
+				actionUrl: `/dashboard/orders/${order.orderNumber}`,
+				actionText: 'View Order',
+			}
+
+			await this.createNotification(notificationData)
+
+			const emailData = {
+				orderNumber: order.orderNumber,
+				moderatorEmail: moderator?.email,
+				actionUrl: `${process.env.FRONTEND_ORIGIN}/dashboard/orders/${order.orderNumber}`,
+				actionText: 'View Order',
+				title: `New Order Moderator - #${order.orderNumber}`,
+			}
+
+			if (!process.env.ADMIN_EMAIL) {
+				throw new ErrorHandler('Admin email not found', 500)
+			}
+
+			await EmailService.sendEmail(
+				'newModeratorEmail',
+				emailData,
+				orderUser.email,
+				emailData.title,
+			)
+		} catch (error: any) {
+			console.error('Failed to send order creation notification:', error)
+		}
+	}
+
+	async notifyOrderFileUploaded(
+		orderId: string,
+		uploadedBy: string,
+		uploadedByEmail: string,
+		filename: string,
+	): Promise<void> {
+		try {
+			const order = await Order.findById(orderId)
+				.populate('userId', 'email')
+				.populate('moderatorId', 'email')
+
+			if (!order) {
+				throw new ErrorHandler('Order not found', 404)
+			}
+
+			const orderUser = order.userId as IUser
+
+			const recipientId =
+				orderUser._id.toString() === uploadedBy
+					? order.moderatorId._id
+					: orderUser._id
+			const recipientEmail =
+				orderUser._id.toString() === uploadedBy
+					? order.moderatorId.email
+					: orderUser.email
+
+			const notificationData: INotificationCreateRequest = {
+				recipientId,
+				senderId: uploadedBy,
+				type: NotificationType.ORDER_UPDATED,
+				title: `New file uploaded to order #${order.orderNumber}`,
+				message: `A new file has been uploaded to your order #${order.orderNumber}.`,
+				metadata: {
+					orderId,
+				},
+				actionUrl: `/dashboard/orders/${order.orderNumber}`,
+				actionText: 'View Order',
+			}
+
+			await this.createNotification(notificationData)
+
+			const emailData = {
+				orderNumber: order.orderNumber,
+				fileName: filename,
+				uploadedBy: uploadedByEmail,
+				actionUrl: `${process.env.FRONTEND_ORIGIN}/dashboard/orders/${order.orderNumber}`,
+				actionText: 'View Order',
+				title: `New File Uploaded to Order #${order.orderNumber}`,
+			}
+
+			if (!process.env.ADMIN_EMAIL) {
+				throw new ErrorHandler('Admin email not found', 500)
+			}
+
+			await EmailService.sendEmail(
+				'newFileUploadEmail',
+				emailData,
+				recipientEmail,
+				emailData.title,
+			)
 		} catch (error: any) {
 			console.error('Failed to send order creation notification:', error)
 		}

@@ -5,11 +5,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notificationService = exports.NotificationService = void 0;
 const notification_model_1 = __importDefault(require("../models/notification.model"));
+const order_model_1 = __importDefault(require("../models/order.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const auth_types_1 = require("../types/auth.types");
 const notification_types_1 = require("../types/notification.types");
 const response_types_1 = require("../types/response.types");
 const ErrorHandler_1 = require("../utils/ErrorHandler");
+const email_service_1 = require("./email.service");
 const socket_service_1 = require("./socket.service");
 class NotificationService {
     async createNotification(notificationData) {
@@ -31,7 +33,7 @@ class NotificationService {
             const adminsAndModerators = await user_model_1.default.find({
                 role: { $in: [auth_types_1.UserRole.ADMIN, auth_types_1.UserRole.MODERATOR] },
             }).select('_id email');
-            if (adminsAndModerators.length === 0) {
+            if (!adminsAndModerators.length) {
                 console.log('No admins or moderators found to notify');
                 return;
             }
@@ -53,6 +55,99 @@ class NotificationService {
                 await this.createNotification(notificationData);
                 console.log(`Order creation notification sent to admin/moderator ${id}`);
             });
+            const emailData = {
+                orderNumber,
+                actionUrl: `${process.env.FRONTEND_ORIGIN}/dashboard/orders/${orderNumber}`,
+                actionText: 'View Order',
+                title: `New Order Created - #${orderNumber}`,
+            };
+            if (!process.env.ADMIN_EMAIL) {
+                throw new ErrorHandler_1.ErrorHandler('Admin email not found', 500);
+            }
+            await email_service_1.EmailService.sendEmail('newOrderEmail', emailData, process.env.ADMIN_EMAIL, emailData.title);
+        }
+        catch (error) {
+            console.error('Failed to send order creation notification:', error);
+        }
+    }
+    async notifyOrderModerated(orderId, moderatorId) {
+        try {
+            const order = await order_model_1.default.findById(orderId).populate('userId', 'email');
+            const moderator = await user_model_1.default.findById(moderatorId);
+            if (!order) {
+                throw new ErrorHandler_1.ErrorHandler('Order not found', 404);
+            }
+            const orderUser = order.userId;
+            const notificationData = {
+                recipientId: orderUser._id,
+                senderId: moderatorId,
+                type: notification_types_1.NotificationType.ORDER_UPDATED,
+                title: `Order #${order.orderNumber} is now moderated`,
+                message: `Your order is now moderated by ${moderator?.email}.`,
+                metadata: {
+                    orderId,
+                    moderatorId,
+                },
+                actionUrl: `/dashboard/orders/${order.orderNumber}`,
+                actionText: 'View Order',
+            };
+            await this.createNotification(notificationData);
+            const emailData = {
+                orderNumber: order.orderNumber,
+                moderatorEmail: moderator?.email,
+                actionUrl: `${process.env.FRONTEND_ORIGIN}/dashboard/orders/${order.orderNumber}`,
+                actionText: 'View Order',
+                title: `New Order Moderator - #${order.orderNumber}`,
+            };
+            if (!process.env.ADMIN_EMAIL) {
+                throw new ErrorHandler_1.ErrorHandler('Admin email not found', 500);
+            }
+            await email_service_1.EmailService.sendEmail('newModeratorEmail', emailData, orderUser.email, emailData.title);
+        }
+        catch (error) {
+            console.error('Failed to send order creation notification:', error);
+        }
+    }
+    async notifyOrderFileUploaded(orderId, uploadedBy, uploadedByEmail, filename) {
+        try {
+            const order = await order_model_1.default.findById(orderId)
+                .populate('userId', 'email')
+                .populate('moderatorId', 'email');
+            if (!order) {
+                throw new ErrorHandler_1.ErrorHandler('Order not found', 404);
+            }
+            const orderUser = order.userId;
+            const recipientId = orderUser._id.toString() === uploadedBy
+                ? order.moderatorId._id
+                : orderUser._id;
+            const recipientEmail = orderUser._id.toString() === uploadedBy
+                ? order.moderatorId.email
+                : orderUser.email;
+            const notificationData = {
+                recipientId,
+                senderId: uploadedBy,
+                type: notification_types_1.NotificationType.ORDER_UPDATED,
+                title: `New file uploaded to order #${order.orderNumber}`,
+                message: `A new file has been uploaded to your order #${order.orderNumber}.`,
+                metadata: {
+                    orderId,
+                },
+                actionUrl: `/dashboard/orders/${order.orderNumber}`,
+                actionText: 'View Order',
+            };
+            await this.createNotification(notificationData);
+            const emailData = {
+                orderNumber: order.orderNumber,
+                fileName: filename,
+                uploadedBy: uploadedByEmail,
+                actionUrl: `${process.env.FRONTEND_ORIGIN}/dashboard/orders/${order.orderNumber}`,
+                actionText: 'View Order',
+                title: `New File Uploaded to Order #${order.orderNumber}`,
+            };
+            if (!process.env.ADMIN_EMAIL) {
+                throw new ErrorHandler_1.ErrorHandler('Admin email not found', 500);
+            }
+            await email_service_1.EmailService.sendEmail('newFileUploadEmail', emailData, recipientEmail, emailData.title);
         }
         catch (error) {
             console.error('Failed to send order creation notification:', error);

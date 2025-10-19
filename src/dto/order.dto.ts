@@ -1,3 +1,4 @@
+import { IUser } from '../types/auth.types'
 import { IOrder, OrderStatus } from '../types/order.types'
 import { IUserSettings } from '../types/settings.types'
 
@@ -69,7 +70,7 @@ export class OrderDTO {
 	constructor(model: IOrder) {
 		this.id = model._id || ''
 		this.orderNumber = model.orderNumber || ''
-		this.userId = model.userId
+		this.userId = model.userId as string
 		this.contact = model.contact
 		this.permitStartDate = model.permitStartDate
 		this.originAddress = model.originAddress
@@ -229,7 +230,7 @@ export class ModeratorOrderDTO {
 	constructor(model: IOrder, settings: IUserSettings) {
 		this.id = model._id || ''
 		this.orderNumber = model.orderNumber || ''
-		this.userId = model.userId
+		this.userId = model.userId as string
 		this.contact = model.contact
 		this.permitStartDate = model.permitStartDate
 		this.originAddress = model.originAddress
@@ -324,6 +325,7 @@ export class PaginatedOrderDTO {
 	originAddress: string
 	destinationAddress: string
 	truckId: string
+	createdBy: string
 	status: OrderStatus
 
 	constructor(model: IOrder) {
@@ -334,5 +336,6 @@ export class PaginatedOrderDTO {
 		this.destinationAddress = model.destinationAddress
 		this.truckId = model.truckId.unitNumber
 		this.status = model.status || OrderStatus.PENDING
+		this.createdBy = (model.userId as IUser).email || ''
 	}
 }

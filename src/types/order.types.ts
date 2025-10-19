@@ -4,7 +4,7 @@ import { TruckDTO } from './truck.types'
 
 export interface IOrder {
 	_id?: string
-	userId: string
+	userId: string | IUser
 	orderNumber?: string
 
 	contact: string

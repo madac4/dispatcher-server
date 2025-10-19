@@ -168,6 +168,7 @@ class PaginatedOrderDTO {
         this.destinationAddress = model.destinationAddress;
         this.truckId = model.truckId.unitNumber;
         this.status = model.status || order_types_1.OrderStatus.PENDING;
+        this.createdBy = model.userId.email || '';
     }
 }
 exports.PaginatedOrderDTO = PaginatedOrderDTO;

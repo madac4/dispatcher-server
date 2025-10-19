@@ -131,6 +131,7 @@ exports.moderateOrder = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, ne
     if (!userSettings)
         return next(new ErrorHandler_1.ErrorHandler('User settings not found', 404));
     const orderDTO = new order_dto_1.ModeratorOrderDTO(order, userSettings);
+    await notification_service_1.notificationService.notifyOrderModerated(orderId, userId);
     res.status(200).json((0, response_types_1.SuccessResponse)(orderDTO, 'Order moderated successfully'));
 });
 exports.duplicateOrder = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
@@ -171,6 +172,7 @@ exports.getOrders = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res) => {
         .limit(limit)
         .populate('truckId', 'unitNumber year make licencePlate state')
         .populate('trailerId', 'unitNumber year make licencePlate state')
+        .populate('userId', 'email')
         .lean();
     const totalItems = await order_model_1.default.countDocuments(query);
     const orderDtos = orders.map(order => new order_dto_1.PaginatedOrderDTO(order));
@@ -297,8 +299,10 @@ exports.uploadOrderFile = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, 
             files: { ...fileData, originalname: file.originalname },
         },
     }, { new: true }).lean();
+    console.log(updatedOrder);
     if (!updatedOrder)
         return next(new ErrorHandler_1.ErrorHandler('Failed to update order', 500));
+    await notification_service_1.notificationService.notifyOrderFileUploaded(orderId, user.id, user.email, file.originalname);
     res.status(200).json((0, response_types_1.SuccessResponse)(updatedOrder, 'File uploaded successfully'));
 });
 exports.getOrderFiles = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
