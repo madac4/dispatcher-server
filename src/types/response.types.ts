@@ -70,9 +70,9 @@ export function CreatePaginationMeta(
 	}
 }
 
-export type PaginationQuery<T = Record<string, string>> = {
+export type PaginationQuery = {
 	page: number
 	limit: number
 	search: string
-	additionalValues: T
+	[key: string]: string | number | string[] | number[] | undefined | boolean
 }

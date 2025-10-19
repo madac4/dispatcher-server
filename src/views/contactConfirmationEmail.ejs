@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Thank You for Contacting Click Permit</title>
+	</head>
+	<body
+		style="
+			margin: 0;
+			padding: 0;
+			background-color: #f4f4f5;
+			font-family:
+				-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+				Helvetica, Arial, sans-serif;
+		"
+	>
+		<table
+			role="presentation"
+			style="
+				width: 100%;
+				max-width: 600px;
+				margin: 32px auto;
+				background-color: #ffffff;
+				border-radius: 8px;
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+			"
+		>
+			<%- include('partials/emailHeader') %>
+
+			<!-- Header Section -->
+			<tr>
+				<td style="padding: 24px; text-align: center">
+					<h1
+						style="
+							font-size: 24px;
+							font-weight: 600;
+							color: #1f2937;
+							margin: 0 0 16px;
+						"
+					>
+						Thank You for Contacting Us!
+					</h1>
+					<p
+						style="
+							font-size: 16px;
+							color: #4b5563;
+							margin: 0 0 24px;
+							line-height: 24px;
+						"
+					>
+						Hi <%= firstName %>, we've received your message and
+						will get back to you soon.
+					</p>
+				</td>
+			</tr>
+
+			<!-- Confirmation Details -->
+			<tr>
+				<td style="padding: 0 24px">
+					<div
+						style="
+							background-color: #f0fdf4;
+							border-radius: 8px;
+							padding: 20px;
+							margin-bottom: 24px;
+						"
+					>
+						<h2
+							style="
+								font-size: 18px;
+								font-weight: 600;
+								color: #166534;
+								margin: 0 0 16px;
+								text-align: center;
+							"
+						>
+							✓ Message Received
+						</h2>
+
+						<table
+							role="presentation"
+							style="width: 100%; border-collapse: collapse"
+						>
+							<tr>
+								<td style="padding: 8px 0; width: 30%">
+									<strong
+										style="color: #374151; font-size: 14px"
+										>Subject:</strong
+									>
+								</td>
+								<td
+									style="
+										padding: 8px 0;
+										color: #1f2937;
+										font-size: 14px;
+									"
+								>
+									<%= subject %>
+								</td>
+							</tr>
+							<tr>
+								<td style="padding: 8px 0; width: 30%">
+									<strong
+										style="color: #374151; font-size: 14px"
+										>Submitted:</strong
+									>
+								</td>
+								<td
+									style="
+										padding: 8px 0;
+										color: #1f2937;
+										font-size: 14px;
+									"
+								>
+									<%= submissionDate %>
+								</td>
+							</tr>
+						</table>
+					</div>
+				</td>
+			</tr>
+
+			<!-- What Happens Next -->
+			<tr>
+				<td style="padding: 0 24px">
+					<div
+						style="
+							background-color: #fef3c7;
+							border-left: 4px solid #f59e0b;
+							border-radius: 0 6px 6px 0;
+							padding: 20px;
+							margin-bottom: 24px;
+						"
+					>
+						<h3
+							style="
+								font-size: 16px;
+								font-weight: 600;
+								color: #92400e;
+								margin: 0 0 12px;
+							"
+						>
+							What Happens Next?
+						</h3>
+						<ul
+							style="
+								font-size: 14px;
+								color: #1f2937;
+								line-height: 24px;
+								margin: 0;
+								padding-left: 20px;
+							"
+						>
+							<li style="margin-bottom: 8px">
+								Our team will review your message within 24
+								hours
+							</li>
+							<li style="margin-bottom: 8px">
+								We'll respond directly to your email address
+							</li>
+							<li style="margin-bottom: 8px">
+								For urgent matters, you can call us directly
+							</li>
+						</ul>
+					</div>
+				</td>
+			</tr>
+
+			<!-- Contact Information -->
+			<tr>
+				<td style="padding: 0 24px">
+					<div
+						style="
+							background-color: #f0f9ff;
+							border-left: 4px solid #0ea5e9;
+							border-radius: 0 6px 6px 0;
+							padding: 20px;
+							margin-bottom: 24px;
+						"
+					>
+						<h3
+							style="
+								font-size: 16px;
+								font-weight: 600;
+								color: #0c4a6e;
+								margin: 0 0 12px;
+							"
+						>
+							Need Immediate Assistance?
+						</h3>
+						<p
+							style="
+								font-size: 14px;
+								color: #1f2937;
+								margin: 0 0 12px;
+								line-height: 20px;
+							"
+						>
+							If you need immediate assistance, please don't
+							hesitate to contact us directly:
+						</p>
+						<div
+							style="
+								display: flex;
+								gap: 12px;
+								flex-wrap: wrap;
+								justify-content: center;
+							"
+						>
+							<a
+								href="tel:+1-555-CLICK"
+								style="
+									display: inline-block;
+									background-color: #16a34a;
+									color: #ffffff;
+									font-size: 12px;
+									font-weight: 500;
+									padding: 8px 16px;
+									border-radius: 6px;
+									text-decoration: none;
+									transition: background-color 0.2s;
+								"
+							>
+								📞 Call Us
+							</a>
+						</div>
+					</div>
+				</td>
+			</tr>
+
+			<!-- Footer Section -->
+			<tr>
+				<td
+					style="
+						padding: 16px 24px;
+						text-align: center;
+						border-top: 1px solid #e5e7eb;
+					"
+				>
+					<p
+						style="
+							font-size: 12px;
+							color: #6b7280;
+							margin: 0 0 8px;
+							line-height: 16px;
+						"
+					>
+						Thank you for choosing Click Permit for your freight
+						management needs.
+					</p>
+					<p
+						style="
+							font-size: 12px;
+							color: #6b7280;
+							margin: 0;
+							line-height: 16px;
+						"
+					>
+						Click Permit Management System
+					</p>
+				</td>
+			</tr>
+		</table>
+	</body>
+</html>

@@ -25,7 +25,6 @@ export const sendMessage = CatchAsyncErrors(
 			)
 		}
 
-		// add userId
 		const order = await Order.findOne({ _id: orderId })
 		if (!order) {
 			return next(

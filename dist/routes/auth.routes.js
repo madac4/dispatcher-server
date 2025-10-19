@@ -6,6 +6,8 @@ const authMiddleware_1 = require("../middleware/authMiddleware");
 const AuthRoutes = (0, express_1.Router)();
 AuthRoutes.post('/login', auth_controller_1.login);
 AuthRoutes.post('/register', auth_controller_1.register);
+AuthRoutes.post('/confirm-email', auth_controller_1.confirmEmail);
+AuthRoutes.post('/resend-confirmation', auth_controller_1.resendConfirmationEmail);
 AuthRoutes.post('/refresh-token', auth_controller_1.refreshToken);
 AuthRoutes.post('/reset-password', auth_controller_1.resetPassword);
 AuthRoutes.post('/logout', authMiddleware_1.authMiddleware, auth_controller_1.logout);

@@ -17,7 +17,6 @@ exports.sendMessage = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next
     if (!orderId || !message) {
         return next(new ErrorHandler_1.ErrorHandler('Order ID and message are required', 400));
     }
-    // add userId
     const order = await order_model_1.default.findOne({ _id: orderId });
     if (!order) {
         return next(new ErrorHandler_1.ErrorHandler('Order not found or access denied', 404));

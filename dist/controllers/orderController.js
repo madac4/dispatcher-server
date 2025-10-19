@@ -3,12 +3,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateOrderStatus = exports.deleteOrderFile = exports.getOrderFiles = exports.uploadOrderFile = exports.downloadOrderFile = exports.getOrderByNumber = exports.getStatuses = exports.getOrders = exports.duplicateOrder = exports.createOrder = void 0;
+exports.updateOrderStatus = exports.deleteOrderFile = exports.getOrderFiles = exports.uploadOrderFile = exports.downloadOrderFile = exports.getOrderByNumber = exports.getStatuses = exports.getOrders = exports.duplicateOrder = exports.moderateOrder = exports.createOrder = void 0;
 const order_dto_1 = require("../dto/order.dto");
 const order_model_1 = __importDefault(require("../models/order.model"));
 const settings_model_1 = __importDefault(require("../models/settings.model"));
 const chat_service_1 = require("../services/chat.service");
 const gridfs_service_1 = require("../services/gridfs.service");
+const notification_service_1 = require("../services/notification.service");
 const socket_service_1 = require("../services/socket.service");
 const auth_types_1 = require("../types/auth.types");
 const order_types_1 = require("../types/order.types");
@@ -17,8 +18,12 @@ const ErrorHandler_1 = require("../utils/ErrorHandler");
 exports.createOrder = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const userId = req.user.id;
     const settings = await settings_model_1.default.findOne({ userId });
-    if (!settings)
-        return next(new ErrorHandler_1.ErrorHandler('Please complete your company information in settings', 404));
+    if (!settings ||
+        !settings.carrierNumbers?.mcNumber ||
+        !settings.carrierNumbers?.dotNumber ||
+        !settings.carrierNumbers?.einNumber) {
+        return next(new ErrorHandler_1.ErrorHandler('Please complete your company information and carrier numbers in settings', 404));
+    }
     const orderData = req.body;
     const files = req.files;
     const requiredFields = [
@@ -66,7 +71,9 @@ exports.createOrder = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next
         legalWeight: orderData.legalWeight,
         originAddress: orderData.originAddress,
         destinationAddress: orderData.destinationAddress,
-        stops: typeof orderData.stops === 'string' ? JSON.parse(orderData.stops) : orderData.stops || [],
+        stops: typeof orderData.stops === 'string'
+            ? JSON.parse(orderData.stops)
+            : orderData.stops || [],
         files: [],
         status: 'pending',
         axleConfigs: typeof orderData.axleConfigs === 'string'
@@ -74,6 +81,9 @@ exports.createOrder = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next
             : orderData.axleConfigs || [],
     });
     const savedOrder = await newOrder.save();
+    if (!savedOrder) {
+        return next(new ErrorHandler_1.ErrorHandler('Failed to create order', 500));
+    }
     if (files && files.length > 0) {
         const uploadedFiles = [];
         for (const file of files) {
@@ -93,8 +103,11 @@ exports.createOrder = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next
         }
     }
     await chat_service_1.ChatService.sendSystemMessage(savedOrder._id.toString(), `New order #${savedOrder.orderNumber} has been created. Status: ${(0, order_types_1.formatStatus)(savedOrder.status)}`, 'system');
+    await notification_service_1.notificationService.notifyOrderCreated(savedOrder._id.toString(), savedOrder.orderNumber, userId);
     if (orderData.messages) {
-        const messages = (typeof orderData.messages === 'string' ? JSON.parse(orderData.messages) : orderData.messages);
+        const messages = (typeof orderData.messages === 'string'
+            ? JSON.parse(orderData.messages)
+            : orderData.messages);
         messages.forEach(async (message) => {
             await chat_service_1.ChatService.sendUserMessage(savedOrder._id, message, userId);
         });
@@ -104,6 +117,22 @@ exports.createOrder = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next
         order: savedOrder,
     });
     res.status(201).json((0, response_types_1.SuccessResponse)({}, 'Order created successfully'));
+});
+exports.moderateOrder = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
+    const userId = req.user.id;
+    const { orderId } = req.params;
+    const order = await order_model_1.default.findById(orderId);
+    if (!order)
+        return next(new ErrorHandler_1.ErrorHandler('Order not found', 404));
+    order.moderatorId = userId;
+    order.status = order_types_1.OrderStatus.PROCESSING;
+    await order.save();
+    const userSettings = await settings_model_1.default.findOne({ userId: order.userId });
+    if (!userSettings)
+        return next(new ErrorHandler_1.ErrorHandler('User settings not found', 404));
+    const orderDTO = new order_dto_1.ModeratorOrderDTO(order, userSettings);
+    await notification_service_1.notificationService.notifyOrderModerated(orderId, userId);
+    res.status(200).json((0, response_types_1.SuccessResponse)(orderDTO, 'Order moderated successfully'));
 });
 exports.duplicateOrder = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const userId = req.user.userId;
@@ -143,9 +172,10 @@ exports.getOrders = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res) => {
         .limit(limit)
         .populate('truckId', 'unitNumber year make licencePlate state')
         .populate('trailerId', 'unitNumber year make licencePlate state')
+        .populate('userId', 'email')
         .lean();
     const totalItems = await order_model_1.default.countDocuments(query);
-    const orderDtos = orders.map((order) => new order_dto_1.PaginatedOrderDTO(order));
+    const orderDtos = orders.map(order => new order_dto_1.PaginatedOrderDTO(order));
     const meta = (0, response_types_1.CreatePaginationMeta)(totalItems, page, limit);
     res.status(200).json((0, response_types_1.PaginatedResponse)(orderDtos, meta));
 });
@@ -158,7 +188,10 @@ exports.getStatuses = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res) => {
             statuses = [order_types_1.OrderStatus.PENDING, order_types_1.OrderStatus.PROCESSING];
             break;
         case order_types_1.OrderStatusType.COMPLETED:
-            statuses = [order_types_1.OrderStatus.REQUIRES_INVOICE, order_types_1.OrderStatus.REQUIRES_CHARGE];
+            statuses = [
+                order_types_1.OrderStatus.REQUIRES_INVOICE,
+                order_types_1.OrderStatus.REQUIRES_CHARGE,
+            ];
             break;
         case order_types_1.OrderStatusType.PAID:
             statuses = [order_types_1.OrderStatus.CHARGED];
@@ -202,27 +235,38 @@ exports.getOrderByNumber = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res,
     if (user.role === auth_types_1.UserRole.USER) {
         query.userId = user.id;
     }
-    const order = await order_model_1.default.findOne(query).populate('truckId').populate('trailerId');
+    const order = await order_model_1.default.findOne(query)
+        .populate('truckId')
+        .populate('trailerId')
+        .populate('moderatorId');
     if (!order)
         return next(new ErrorHandler_1.ErrorHandler('Order not found', 404));
     if (user.role !== auth_types_1.UserRole.USER) {
-        const userSettings = await settings_model_1.default.findOne({ userId: order.userId });
+        const userSettings = await settings_model_1.default.findOne({
+            userId: order.userId,
+        });
         if (!userSettings)
             return next(new ErrorHandler_1.ErrorHandler('User settings not found', 404));
         const orderDTO = new order_dto_1.ModeratorOrderDTO(order, userSettings);
-        return res.status(200).json((0, response_types_1.SuccessResponse)(orderDTO, 'Order retrieved successfully'));
+        return res
+            .status(200)
+            .json((0, response_types_1.SuccessResponse)(orderDTO, 'Order retrieved successfully'));
     }
     const orderDTO = new order_dto_1.OrderDTO(order);
     res.status(200).json((0, response_types_1.SuccessResponse)(orderDTO, 'Order retrieved successfully'));
 });
 exports.downloadOrderFile = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
+    const { id, role } = req.user;
     const { filename, orderId } = req.params;
-    const userId = req.user.userId;
-    const order = await order_model_1.default.findOne({
-        userId,
+    let orderQuery = {
         _id: orderId,
+        userId: id,
         'files.filename': filename,
-    }).lean();
+    };
+    if (role === auth_types_1.UserRole.MODERATOR || role === auth_types_1.UserRole.ADMIN) {
+        delete orderQuery.userId;
+    }
+    const order = await order_model_1.default.findOne(orderQuery).lean();
     if (!order)
         return next(new ErrorHandler_1.ErrorHandler('File not found or access denied', 404));
     const fileData = order.files.find((file) => file.filename === filename);
@@ -243,7 +287,9 @@ exports.uploadOrderFile = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, 
     if (!file)
         return next(new ErrorHandler_1.ErrorHandler('File is required', 400));
     const { orderId } = req.params;
-    const query = user.role === auth_types_1.UserRole.USER ? { _id: orderId, userId: user.userId } : { _id: orderId };
+    const query = user.role === auth_types_1.UserRole.USER
+        ? { _id: orderId, userId: user.userId }
+        : { _id: orderId };
     const order = await order_model_1.default.findOne(query);
     if (!order)
         return next(new ErrorHandler_1.ErrorHandler('Order not found', 404));
@@ -253,8 +299,10 @@ exports.uploadOrderFile = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, 
             files: { ...fileData, originalname: file.originalname },
         },
     }, { new: true }).lean();
+    console.log(updatedOrder);
     if (!updatedOrder)
         return next(new ErrorHandler_1.ErrorHandler('Failed to update order', 500));
+    await notification_service_1.notificationService.notifyOrderFileUploaded(orderId, user.id, user.email, file.originalname);
     res.status(200).json((0, response_types_1.SuccessResponse)(updatedOrder, 'File uploaded successfully'));
 });
 exports.getOrderFiles = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
@@ -293,7 +341,5 @@ exports.updateOrderStatus = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res
         order: order,
     });
     await chat_service_1.ChatService.sendSystemMessage(orderId, `Order #${order.orderNumber} status has been updated to ${(0, order_types_1.formatStatus)(status)}`, 'system');
-    res
-        .status(200)
-        .json((0, response_types_1.SuccessResponse)(order, `Order status updated successfully to ${(0, order_types_1.formatStatus)(status)}`));
+    res.status(200).json((0, response_types_1.SuccessResponse)(order, `Order status updated successfully to ${(0, order_types_1.formatStatus)(status)}`));
 });

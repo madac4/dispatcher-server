@@ -163,7 +163,6 @@ class SocketService {
         });
         console.log(`Order update broadcasted to room: ${orderId}`);
     }
-    // Send notification to specific user
     sendNotification(userId, notification) {
         if (!this.io)
             return;
@@ -173,30 +172,6 @@ class SocketService {
         });
         console.log(`Notification sent to user: ${userId}`);
     }
-    // Get connected users for an order
-    getOrderUsers(orderId) {
-        return this.orderRooms.get(orderId) || [];
-    }
-    // Get user's socket connections
-    getUserSockets(userId) {
-        return this.userSockets.get(userId) || [];
-    }
-    // Check if user is online
-    isUserOnline(userId) {
-        const userSockets = this.userSockets.get(userId) || [];
-        return userSockets.length > 0;
-    }
-    // Get online users for multiple orders
-    getOnlineUsersForOrders(orderIds) {
-        const result = new Map();
-        orderIds.forEach(orderId => {
-            const users = this.orderRooms.get(orderId) || [];
-            const onlineUsers = users.filter(userId => this.isUserOnline(userId));
-            result.set(orderId, onlineUsers);
-        });
-        return result;
-    }
 }
 exports.SocketService = SocketService;
-// Export singleton instance
 exports.socketService = new SocketService();

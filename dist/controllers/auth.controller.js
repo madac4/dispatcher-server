@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logout = exports.updatePassword = exports.resetPassword = exports.forgotPassword = exports.refreshToken = exports.login = exports.register = void 0;
+exports.resendConfirmationEmail = exports.confirmEmail = exports.logout = exports.updatePassword = exports.resetPassword = exports.forgotPassword = exports.refreshToken = exports.login = exports.register = void 0;
 const crypto_1 = __importDefault(require("crypto"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const nodemailer_1 = __importDefault(require("../config/nodemailer"));
@@ -28,7 +28,8 @@ exports.register = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) =
         await auth_service_1.AuthService.validateRegisterRequest(email, password);
         response = await auth_service_1.AuthService.registerUser(email, password);
     }
-    else if (user.role === auth_types_1.UserRole.MODERATOR) {
+    else if (user.role === auth_types_1.UserRole.ADMIN &&
+        role === auth_types_1.UserRole.MODERATOR) {
         await auth_service_1.AuthService.validateRegisterRequest(email, password);
         response = await auth_service_1.AuthService.registerModerator(email, password);
     }
@@ -44,6 +45,8 @@ exports.login = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const user = await user_model_1.default.findOne({ email }).select('+password');
     if (!user)
         return next(new ErrorHandler_1.ErrorHandler('You do not have an account, please register', 400));
+    if (!user.isEmailConfirmed)
+        return next(new ErrorHandler_1.ErrorHandler('Please confirm your email address before logging in', 400));
     const isMatch = await user.comparePassword(password);
     if (!isMatch)
         return next(new ErrorHandler_1.ErrorHandler('Invalid email or password', 400));
@@ -102,9 +105,9 @@ exports.forgotPassword = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, n
             frontendOrigin: process.env.FRONTEND_ORIGIN,
         });
         await nodemailer_1.default.sendMail({
-            from: `Dhruv <${process.env.EMAIL_USER}>`,
+            from: `Click Permit <${process.env.ADMIN_EMAIL}>`,
             to: email,
-            subject: 'Reset Your Dhruv Password',
+            subject: 'Reset Your Click Permit Password',
             html,
         });
     }
@@ -145,18 +148,8 @@ exports.updatePassword = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, n
         return next(new ErrorHandler_1.ErrorHandler('All fields are required', 400));
     if (password !== confirmPassword)
         return next(new ErrorHandler_1.ErrorHandler('Passwords do not match', 400));
-    const user = await user_model_1.default.findById(userId).select('+password');
-    if (!user)
-        return next(new ErrorHandler_1.ErrorHandler('User not found', 404));
-    const isMatch = await user.comparePassword(currentPassword);
-    if (!isMatch)
-        return next(new ErrorHandler_1.ErrorHandler('Invalid current password', 400));
-    const isSamePassword = await user.comparePassword(password);
-    if (isSamePassword)
-        return next(new ErrorHandler_1.ErrorHandler('New password cannot be the same as the old password', 400));
-    user.password = password;
-    await user.save();
-    res.status(200).json((0, response_types_1.SuccessResponse)(null, 'Password changed successfully'));
+    const response = await auth_service_1.AuthService.updatePassword(userId, currentPassword, password);
+    res.status(200).json(response);
 });
 exports.logout = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const { userId } = req.user;
@@ -167,4 +160,18 @@ exports.logout = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => 
         return next(new ErrorHandler_1.ErrorHandler('No refresh tokens found', 401));
     await refresh_token_model_1.default.deleteMany({ userId });
     res.status(200).json((0, response_types_1.SuccessResponse)(null, 'Logout successful'));
+});
+exports.confirmEmail = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
+    const { token } = req.body;
+    if (!token)
+        return next(new ErrorHandler_1.ErrorHandler('Token is required', 400));
+    const response = await auth_service_1.AuthService.confirmEmail(token);
+    res.status(200).json(response);
+});
+exports.resendConfirmationEmail = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
+    const { email } = req.body;
+    if (!email)
+        return next(new ErrorHandler_1.ErrorHandler('Email is required', 400));
+    const response = await auth_service_1.AuthService.resendConfirmationEmail(email);
+    res.status(200).json(response);
 });

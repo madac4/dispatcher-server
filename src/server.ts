@@ -6,8 +6,9 @@ import { createServer } from 'http'
 import connectDB from './config/db'
 import AuthRoutes from './routes/auth.routes'
 import ChatRoutes from './routes/chat.routes'
+import ContactRoutes from './routes/contact.routes'
 import DashboardRoutes from './routes/dashboard.routes'
-import InvitationRoutes from './routes/invitation.routes'
+import NotificationRoutes from './routes/notification.routes'
 import OrderRoutes from './routes/order.routes'
 import SettingsRoutes from './routes/settings.routes'
 import TrailerRoutes from './routes/trailer.routes'
@@ -53,26 +54,28 @@ app.get('/health', (req: Request, res: Response) => {
 
 const jsonParser = bodyParser.json({ limit: '50mb' })
 
-app.use('/api/invitation', jsonParser, InvitationRoutes)
+app.use('/api/notifications', jsonParser, NotificationRoutes)
 app.use('/api/dashboard', jsonParser, DashboardRoutes)
 app.use('/api/authorization', jsonParser, AuthRoutes)
+app.use('/api/settings', jsonParser, SettingsRoutes)
 app.use('/api/trailers', jsonParser, TrailerRoutes)
+app.use('/api/contact', jsonParser, ContactRoutes)
 app.use('/api/trucks', jsonParser, TruckRoutes)
 app.use('/api/orders', jsonParser, OrderRoutes)
 app.use('/api/chat', jsonParser, ChatRoutes)
-app.use(
-	'/api/settings',
-	(req, res, next) => {
-		if (
-			req.path.includes('/files') &&
-			(req.method === 'POST' || req.method === 'PUT')
-		) {
-			return next()
-		}
-		return jsonParser(req, res, next)
-	},
-	SettingsRoutes,
-)
+// app.use(
+// 	'/api/settings',
+// 	(req, res, next) => {
+// 		if (
+// 			req.path.includes('/files') &&
+// 			(req.method === 'POST' || req.method === 'PUT')
+// 		) {
+// 			return next()
+// 		}
+// 		return jsonParser(req, res, next)
+// 	},
+// 	SettingsRoutes,
+// )
 
 app.use(globalErrorHandler)
 

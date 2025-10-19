@@ -12,6 +12,7 @@ const orderSchema: Schema = new Schema<IOrder>(
 
 		truckId: { type: String, required: true, ref: 'Truck' },
 		trailerId: { type: String, required: true, ref: 'Trailer' },
+		moderatorId: { type: String, ref: 'User' },
 
 		commodity: { type: String, required: true },
 		loadDims: { type: String, required: true },
