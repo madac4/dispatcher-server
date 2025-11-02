@@ -1,3 +1,4 @@
+import { NotificationDTO } from '../dto/notification.dto'
 import Notification from '../models/notification.model'
 import Order from '../models/order.model'
 import User from '../models/user.model'
@@ -200,7 +201,7 @@ export class NotificationService {
 					orderId,
 				},
 				actionUrl: `/dashboard/orders/${order.orderNumber}`,
-				actionText: 'View Order',
+				actionText: 'View File',
 			}
 
 			await this.createNotification(notificationData)
@@ -210,7 +211,7 @@ export class NotificationService {
 				fileName: filename,
 				uploadedBy: uploadedByEmail,
 				actionUrl: `${process.env.FRONTEND_ORIGIN}/dashboard/orders/${order.orderNumber}`,
-				actionText: 'View Order',
+				actionText: 'View File',
 				title: `New File Uploaded to Order #${order.orderNumber}`,
 			}
 
@@ -229,10 +230,75 @@ export class NotificationService {
 		}
 	}
 
+	async notifyOrderMessage(
+		orderId: string,
+		senderId: string,
+		senderEmail: string,
+		message: string,
+	): Promise<void> {
+		try {
+			const order = await Order.findById(orderId)
+				.populate('userId', 'email')
+				.populate('moderatorId', 'email')
+
+			if (!order) {
+				throw new ErrorHandler('Order not found', 404)
+			}
+
+			const orderUser = order.userId as IUser
+
+			const recipientId =
+				orderUser._id.toString() === senderId
+					? order.moderatorId._id
+					: orderUser._id
+
+			const recipientEmail =
+				orderUser._id.toString() === senderId
+					? order.moderatorId.email
+					: orderUser.email
+
+			const notificationData: INotificationCreateRequest = {
+				recipientId,
+				senderId,
+				type: NotificationType.ORDER_UPDATED,
+				title: `New message from ${senderEmail}`,
+				message,
+				metadata: {
+					orderId,
+				},
+				actionUrl: `/dashboard/orders/${order.orderNumber}`,
+				actionText: 'View Message',
+			}
+
+			await this.createNotification(notificationData)
+
+			const emailData = {
+				orderNumber: order.orderNumber,
+				senderEmail: senderEmail,
+				actionUrl: `${process.env.FRONTEND_ORIGIN}/dashboard/orders/${order.orderNumber}`,
+				actionText: 'View Message',
+				title: `New Message from ${senderEmail}`,
+				message: message,
+			}
+
+			if (!process.env.ADMIN_EMAIL)
+				throw new ErrorHandler('Admin email not found', 500)
+
+			await EmailService.sendEmail(
+				'newMessageEmail',
+				emailData,
+				recipientEmail,
+				emailData.title,
+			)
+		} catch (error: any) {
+			console.error('Failed to send order creation notification:', error)
+		}
+	}
+
 	async getUserNotifications(
 		userId: string,
 		query: PaginationQuery,
-	): Promise<PaginatedModel<INotification>> {
+	): Promise<PaginatedModel<NotificationDTO>> {
 		try {
 			const { unreadOnly, page, limit } = query
 
@@ -255,7 +321,11 @@ export class NotificationService {
 				limit,
 			)
 
-			return PaginatedResponse(notifications, meta)
+			const notificationsDTO = notifications.map(
+				notification => new NotificationDTO(notification),
+			)
+
+			return PaginatedResponse(notificationsDTO, meta)
 		} catch (error: any) {
 			throw new ErrorHandler(
 				`Failed to get notifications: ${error.message}`,

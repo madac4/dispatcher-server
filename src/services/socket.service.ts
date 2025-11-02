@@ -100,7 +100,6 @@ export class SocketService {
 
 			socket.on('disconnect', () => {
 				this.removeUserSocket(userId, socket.id)
-				console.log(`User ${userId} disconnected: ${socket.id}`)
 			})
 		})
 	}
@@ -135,9 +134,6 @@ export class SocketService {
 			this.orderRooms.set(orderId, roomUsers)
 		}
 
-		console.log(`User ${userId} joined order room: ${orderId}`)
-
-		// Notify others in the room
 		socket.to(roomName).emit('user-joined-order', {
 			userId,
 			orderId,
@@ -158,9 +154,6 @@ export class SocketService {
 		} else {
 			this.orderRooms.set(orderId, updatedUsers)
 		}
-
-		console.log(`User ${userId} left order room: ${orderId}`)
-
 		// Notify others in the room
 		socket.to(roomName).emit('user-left-order', {
 			userId,
@@ -178,8 +171,6 @@ export class SocketService {
 			message,
 			timestamp: new Date(),
 		})
-
-		console.log(`Message broadcasted to order room: ${orderId}`)
 	}
 
 	// Broadcast order status update
@@ -192,8 +183,6 @@ export class SocketService {
 			update,
 			timestamp: new Date(),
 		})
-
-		console.log(`Order update broadcasted to room: ${orderId}`)
 	}
 
 	sendNotification(userId: string, notification: any) {
@@ -204,8 +193,6 @@ export class SocketService {
 		userSockets.forEach(socketId => {
 			this.io!.to(socketId.id).emit('notification', notification)
 		})
-
-		console.log(`Notification sent to user: ${userId}`)
 	}
 }
 

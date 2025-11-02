@@ -121,7 +121,6 @@ exports.updateCarrierNumbers = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, 
 });
 exports.uploadCarrierFile = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const file = req.file;
-    console.log(file);
     if (!file)
         return next(new ErrorHandler_1.ErrorHandler('File is required', 400));
     const userId = req.user.userId;
