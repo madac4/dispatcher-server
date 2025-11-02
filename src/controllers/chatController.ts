@@ -3,6 +3,7 @@ import { MessageDTO } from '../dto/message.dto'
 import ChatMessage from '../models/chatMessage.model'
 import Order from '../models/order.model'
 import OrderChat from '../models/orderChat.model'
+import { notificationService } from '../services/notification.service'
 import { socketService } from '../services/socket.service'
 import { IChatMessage, MessagePayload } from '../types/chat.types'
 import {
@@ -15,7 +16,7 @@ import { CatchAsyncErrors, ErrorHandler } from '../utils/ErrorHandler'
 
 export const sendMessage = CatchAsyncErrors(
 	async (req: Request, res: Response, next: NextFunction) => {
-		const userId = req.user.id
+		const { id: userId, email: userEmail } = req.user
 
 		const { orderId, message }: MessagePayload = req.body
 
@@ -62,6 +63,13 @@ export const sendMessage = CatchAsyncErrors(
 		const messageDTO = new MessageDTO(populatedMessage)
 
 		socketService.broadcastMessage(orderId, messageDTO)
+
+		notificationService.notifyOrderMessage(
+			orderId,
+			userId,
+			userEmail,
+			message,
+		)
 
 		res.status(201).json(
 			SuccessResponse(messageDTO, 'Message sent successfully'),

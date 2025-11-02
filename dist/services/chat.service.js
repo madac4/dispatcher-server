@@ -6,6 +6,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatService = void 0;
 const chatMessage_model_1 = __importDefault(require("../models/chatMessage.model"));
 const orderChat_model_1 = __importDefault(require("../models/orderChat.model"));
+const user_model_1 = __importDefault(require("../models/user.model"));
+const ErrorHandler_1 = require("../utils/ErrorHandler");
+const notification_service_1 = require("./notification.service");
 class ChatService {
     static async sendSystemMessage(orderId, message, senderType = 'system') {
         const systemMessage = new chatMessage_model_1.default({
@@ -34,11 +37,16 @@ class ChatService {
             isRead: false,
         });
         const savedMessage = await userMessage.save();
+        const user = await user_model_1.default.findById(userId);
+        if (!user) {
+            throw new ErrorHandler_1.ErrorHandler('User not found', 404);
+        }
         await orderChat_model_1.default.findOneAndUpdate({ orderId }, {
             $push: { messages: savedMessage._id },
             $set: { lastMessage: savedMessage._id },
             $inc: { unreadCount: 1 },
         }, { upsert: true });
+        await notification_service_1.notificationService.notifyOrderMessage(orderId, userId, user.email, message);
         return savedMessage;
     }
     static async getChatStats(orderId) {

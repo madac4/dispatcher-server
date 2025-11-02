@@ -16,7 +16,6 @@ const initGridFS = () => {
         bucket = new mongoose_1.default.mongo.GridFSBucket(mongoose_1.default.connection.db, {
             bucketName: 'uploads',
         });
-        console.log('GridFS initialized');
     }
     catch (error) {
         console.error('Failed to initialize GridFS:', error);
@@ -35,10 +34,6 @@ const uploadFile = async (file) => {
         try {
             const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
             const filename = uniqueSuffix + '-' + file.originalname.replace(/\s+/g, '_');
-            console.log('Creating readable stream from buffer', {
-                bufferExists: !!file.buffer,
-                bufferLength: file.buffer ? file.buffer.length : 0,
-            });
             const readableStream = new stream_1.Readable({
                 read() {
                     this.push(file.buffer);
@@ -55,7 +50,6 @@ const uploadFile = async (file) => {
                 },
             });
             uploadStream.on('finish', function () {
-                console.log('GridFS upload finished successfully');
                 resolve({
                     id: uploadStream.id.toString(),
                     filename: filename,
@@ -103,7 +97,10 @@ const deleteFile = async (filename) => {
     }
     try {
         // Find the file by filename
-        const files = await mongoose_1.default.connection.db.collection('uploads.files').find({ filename }).toArray();
+        const files = await mongoose_1.default.connection.db
+            .collection('uploads.files')
+            .find({ filename })
+            .toArray();
         if (files.length === 0) {
             throw new Error(`File not found: ${filename}`);
         }
@@ -122,7 +119,10 @@ const fileExists = async (filename) => {
         return false;
     }
     try {
-        const files = await mongoose_1.default.connection.db.collection('uploads.files').find({ filename }).toArray();
+        const files = await mongoose_1.default.connection.db
+            .collection('uploads.files')
+            .find({ filename })
+            .toArray();
         return files.length > 0;
     }
     catch (error) {

@@ -456,8 +456,6 @@ export const uploadOrderFile = CatchAsyncErrors(
 			{ new: true },
 		).lean()
 
-		console.log(updatedOrder)
-
 		if (!updatedOrder)
 			return next(new ErrorHandler('Failed to update order', 500))
 

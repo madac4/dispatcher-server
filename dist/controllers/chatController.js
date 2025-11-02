@@ -8,11 +8,12 @@ const message_dto_1 = require("../dto/message.dto");
 const chatMessage_model_1 = __importDefault(require("../models/chatMessage.model"));
 const order_model_1 = __importDefault(require("../models/order.model"));
 const orderChat_model_1 = __importDefault(require("../models/orderChat.model"));
+const notification_service_1 = require("../services/notification.service");
 const socket_service_1 = require("../services/socket.service");
 const response_types_1 = require("../types/response.types");
 const ErrorHandler_1 = require("../utils/ErrorHandler");
 exports.sendMessage = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
-    const userId = req.user.id;
+    const { id: userId, email: userEmail } = req.user;
     const { orderId, message } = req.body;
     if (!orderId || !message) {
         return next(new ErrorHandler_1.ErrorHandler('Order ID and message are required', 400));
@@ -43,6 +44,7 @@ exports.sendMessage = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next
     const populatedMessage = (await chatMessage_model_1.default.findById(savedMessage._id).populate('userId', 'email'));
     const messageDTO = new message_dto_1.MessageDTO(populatedMessage);
     socket_service_1.socketService.broadcastMessage(orderId, messageDTO);
+    notification_service_1.notificationService.notifyOrderMessage(orderId, userId, userEmail, message);
     res.status(201).json((0, response_types_1.SuccessResponse)(messageDTO, 'Message sent successfully'));
 });
 exports.getOrderMessages = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {

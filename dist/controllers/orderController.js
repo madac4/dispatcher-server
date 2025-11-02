@@ -299,7 +299,6 @@ exports.uploadOrderFile = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, 
             files: { ...fileData, originalname: file.originalname },
         },
     }, { new: true }).lean();
-    console.log(updatedOrder);
     if (!updatedOrder)
         return next(new ErrorHandler_1.ErrorHandler('Failed to update order', 500));
     await notification_service_1.notificationService.notifyOrderFileUploaded(orderId, user.id, user.email, file.originalname);

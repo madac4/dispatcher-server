@@ -202,8 +202,6 @@ export const uploadCarrierFile = CatchAsyncErrors(
 	async (req: Request, res: Response, next: NextFunction): Promise<void> => {
 		const file = req.file
 
-		console.log(file)
-
 		if (!file) return next(new ErrorHandler('File is required', 400))
 
 		const userId = req.user.userId

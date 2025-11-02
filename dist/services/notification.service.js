@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notificationService = exports.NotificationService = void 0;
+const notification_dto_1 = require("../dto/notification.dto");
 const notification_model_1 = __importDefault(require("../models/notification.model"));
 const order_model_1 = __importDefault(require("../models/order.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
@@ -133,7 +134,7 @@ class NotificationService {
                     orderId,
                 },
                 actionUrl: `/dashboard/orders/${order.orderNumber}`,
-                actionText: 'View Order',
+                actionText: 'View File',
             };
             await this.createNotification(notificationData);
             const emailData = {
@@ -141,13 +142,57 @@ class NotificationService {
                 fileName: filename,
                 uploadedBy: uploadedByEmail,
                 actionUrl: `${process.env.FRONTEND_ORIGIN}/dashboard/orders/${order.orderNumber}`,
-                actionText: 'View Order',
+                actionText: 'View File',
                 title: `New File Uploaded to Order #${order.orderNumber}`,
             };
             if (!process.env.ADMIN_EMAIL) {
                 throw new ErrorHandler_1.ErrorHandler('Admin email not found', 500);
             }
             await email_service_1.EmailService.sendEmail('newFileUploadEmail', emailData, recipientEmail, emailData.title);
+        }
+        catch (error) {
+            console.error('Failed to send order creation notification:', error);
+        }
+    }
+    async notifyOrderMessage(orderId, senderId, senderEmail, message) {
+        try {
+            const order = await order_model_1.default.findById(orderId)
+                .populate('userId', 'email')
+                .populate('moderatorId', 'email');
+            if (!order) {
+                throw new ErrorHandler_1.ErrorHandler('Order not found', 404);
+            }
+            const orderUser = order.userId;
+            const recipientId = orderUser._id.toString() === senderId
+                ? order.moderatorId._id
+                : orderUser._id;
+            const recipientEmail = orderUser._id.toString() === senderId
+                ? order.moderatorId.email
+                : orderUser.email;
+            const notificationData = {
+                recipientId,
+                senderId,
+                type: notification_types_1.NotificationType.ORDER_UPDATED,
+                title: `New message from ${senderEmail}`,
+                message,
+                metadata: {
+                    orderId,
+                },
+                actionUrl: `/dashboard/orders/${order.orderNumber}`,
+                actionText: 'View Message',
+            };
+            await this.createNotification(notificationData);
+            const emailData = {
+                orderNumber: order.orderNumber,
+                senderEmail: senderEmail,
+                actionUrl: `${process.env.FRONTEND_ORIGIN}/dashboard/orders/${order.orderNumber}`,
+                actionText: 'View Message',
+                title: `New Message from ${senderEmail}`,
+                message: message,
+            };
+            if (!process.env.ADMIN_EMAIL)
+                throw new ErrorHandler_1.ErrorHandler('Admin email not found', 500);
+            await email_service_1.EmailService.sendEmail('newMessageEmail', emailData, recipientEmail, emailData.title);
         }
         catch (error) {
             console.error('Failed to send order creation notification:', error);
@@ -167,7 +212,8 @@ class NotificationService {
                 .lean();
             const total = await notification_model_1.default.countDocuments(filter);
             const meta = (0, response_types_1.CreatePaginationMeta)(total, page, limit);
-            return (0, response_types_1.PaginatedResponse)(notifications, meta);
+            const notificationsDTO = notifications.map(notification => new notification_dto_1.NotificationDTO(notification));
+            return (0, response_types_1.PaginatedResponse)(notificationsDTO, meta);
         }
         catch (error) {
             throw new ErrorHandler_1.ErrorHandler(`Failed to get notifications: ${error.message}`, 500);
