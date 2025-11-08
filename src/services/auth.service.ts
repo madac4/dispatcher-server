@@ -60,6 +60,14 @@ export const AuthService = {
 		await newUser.save()
 
 		if (newUser.role === UserRole.MODERATOR) {
+			const confirmationToken = crypto.randomBytes(32).toString('hex')
+			const confirmationTokenDoc = new EmailConfirmationToken({
+				token: confirmationToken,
+				userId: newUser._id,
+				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+			})
+			await confirmationTokenDoc.save()
+
 			const emailData = {
 				email,
 				password,
@@ -72,6 +80,16 @@ export const AuthService = {
 				emailData,
 				email,
 				'Moderator Registration',
+			)
+
+			await EmailService.sendEmail(
+				'confirmRegistration',
+				{
+					confirmationToken,
+					frontendOrigin: process.env.FRONTEND_ORIGIN,
+				},
+				email,
+				'Confirm Your Click Permit Account',
 			)
 		}
 
