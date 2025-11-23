@@ -6,16 +6,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.resendConfirmationEmail = exports.confirmEmail = exports.logout = exports.updatePassword = exports.resetPassword = exports.forgotPassword = exports.refreshToken = exports.login = exports.register = void 0;
 const crypto_1 = __importDefault(require("crypto"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const nodemailer_1 = __importDefault(require("../config/nodemailer"));
 const authMiddleware_1 = require("../middleware/authMiddleware");
 const refresh_token_model_1 = __importDefault(require("../models/refresh-token.model"));
 const reset_token_model_1 = __importDefault(require("../models/reset-token.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const auth_service_1 = require("../services/auth.service");
+const email_service_1 = require("../services/email.service");
 const auth_types_1 = require("../types/auth.types");
 const response_types_1 = require("../types/response.types");
 const ErrorHandler_1 = require("../utils/ErrorHandler");
-const renderEmail_1 = __importDefault(require("../utils/renderEmail"));
 const validators_1 = require("../utils/validators");
 exports.register = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const { email, password, role } = req.body;
@@ -100,16 +99,10 @@ exports.forgotPassword = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, n
     });
     await resetTokenDoc.save();
     try {
-        const html = await (0, renderEmail_1.default)('forgotPasswordEmail', {
+        await email_service_1.EmailService.sendEmail('forgotPasswordEmail', {
             resetToken,
             frontendOrigin: process.env.FRONTEND_ORIGIN,
-        });
-        await nodemailer_1.default.sendMail({
-            from: `Click Permit <${process.env.ADMIN_EMAIL}>`,
-            to: email,
-            subject: 'Reset Your Click Permit Password',
-            html,
-        });
+        }, email, `Reset Your Click Permit Password`);
     }
     catch (error) {
         await resetTokenDoc.deleteOne();

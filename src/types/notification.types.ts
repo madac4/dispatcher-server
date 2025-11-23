@@ -10,6 +10,7 @@ export enum NotificationType {
 	FILE_UPLOADED = 'file_uploaded',
 	FILE_DELETED = 'file_deleted',
 	SYSTEM_ANNOUNCEMENT = 'system_announcement',
+	INVOICE_CREATED = 'invoice_created',
 }
 
 export enum NotificationStatus {
@@ -29,6 +30,8 @@ export interface INotification {
 	metadata?: {
 		orderId?: string
 		orderNumber?: string
+		invoiceId?: string
+		invoiceNumber?: string
 		chatId?: string
 		fileId?: string
 		userId?: string
@@ -59,6 +62,8 @@ export interface INotificationCreateRequest {
 	metadata?: {
 		orderId?: string
 		orderNumber?: string
+		invoiceId?: string
+		invoiceNumber?: string
 		chatId?: string
 		fileId?: string
 		userId?: string

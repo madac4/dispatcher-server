@@ -1,0 +1,17 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const invoice_controller_1 = require("../controllers/invoice.controller");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const rolesMiddleware_1 = require("../middleware/rolesMiddleware");
+const auth_types_1 = require("../types/auth.types");
+const InvoiceRoutes = (0, express_1.Router)();
+InvoiceRoutes.get('/users', authMiddleware_1.authMiddleware, (0, rolesMiddleware_1.rolesMiddleware)([auth_types_1.UserRole.ADMIN]), invoice_controller_1.getUsersForInvoice);
+InvoiceRoutes.get('/', authMiddleware_1.authMiddleware, invoice_controller_1.getInvoices);
+InvoiceRoutes.get('/:id', authMiddleware_1.authMiddleware, invoice_controller_1.getInvoiceById);
+InvoiceRoutes.post('/', authMiddleware_1.authMiddleware, (0, rolesMiddleware_1.rolesMiddleware)([auth_types_1.UserRole.ADMIN]), invoice_controller_1.createInvoice);
+InvoiceRoutes.put('/:id', authMiddleware_1.authMiddleware, (0, rolesMiddleware_1.rolesMiddleware)([auth_types_1.UserRole.ADMIN]), invoice_controller_1.updateInvoice);
+InvoiceRoutes.delete('/:id', authMiddleware_1.authMiddleware, (0, rolesMiddleware_1.rolesMiddleware)([auth_types_1.UserRole.ADMIN]), invoice_controller_1.deleteInvoice);
+InvoiceRoutes.post('/:id/send-email', authMiddleware_1.authMiddleware, (0, rolesMiddleware_1.rolesMiddleware)([auth_types_1.UserRole.ADMIN]), invoice_controller_1.sendInvoiceEmail);
+InvoiceRoutes.get('/:id/download', authMiddleware_1.authMiddleware, invoice_controller_1.downloadInvoice);
+exports.default = InvoiceRoutes;

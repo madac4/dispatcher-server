@@ -11,6 +11,7 @@ var NotificationType;
     NotificationType["FILE_UPLOADED"] = "file_uploaded";
     NotificationType["FILE_DELETED"] = "file_deleted";
     NotificationType["SYSTEM_ANNOUNCEMENT"] = "system_announcement";
+    NotificationType["INVOICE_CREATED"] = "invoice_created";
 })(NotificationType || (exports.NotificationType = NotificationType = {}));
 var NotificationStatus;
 (function (NotificationStatus) {

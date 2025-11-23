@@ -8,6 +8,7 @@ import AuthRoutes from './routes/auth.routes'
 import ChatRoutes from './routes/chat.routes'
 import ContactRoutes from './routes/contact.routes'
 import DashboardRoutes from './routes/dashboard.routes'
+import InvoiceRoutes from './routes/invoice.routes'
 import NotificationRoutes from './routes/notification.routes'
 import OrderRoutes from './routes/order.routes'
 import SettingsRoutes from './routes/settings.routes'
@@ -59,23 +60,11 @@ app.use('/api/dashboard', jsonParser, DashboardRoutes)
 app.use('/api/authorization', jsonParser, AuthRoutes)
 app.use('/api/settings', jsonParser, SettingsRoutes)
 app.use('/api/trailers', jsonParser, TrailerRoutes)
+app.use('/api/invoices', jsonParser, InvoiceRoutes)
 app.use('/api/contact', jsonParser, ContactRoutes)
 app.use('/api/trucks', jsonParser, TruckRoutes)
 app.use('/api/orders', jsonParser, OrderRoutes)
 app.use('/api/chat', jsonParser, ChatRoutes)
-// app.use(
-// 	'/api/settings',
-// 	(req, res, next) => {
-// 		if (
-// 			req.path.includes('/files') &&
-// 			(req.method === 'POST' || req.method === 'PUT')
-// 		) {
-// 			return next()
-// 		}
-// 		return jsonParser(req, res, next)
-// 	},
-// 	SettingsRoutes,
-// )
 
 app.use(globalErrorHandler)
 
