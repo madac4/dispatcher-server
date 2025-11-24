@@ -299,6 +299,31 @@ class NotificationService {
         }
     }
     /**
+     * Notify user when invoice is created
+     */
+    async notifyInvoiceCreated(invoiceId, invoiceNumber, userId, adminId) {
+        try {
+            const notificationData = {
+                recipientId: userId,
+                senderId: adminId,
+                type: notification_types_1.NotificationType.INVOICE_CREATED,
+                title: 'New Invoice Received',
+                message: `You have received a new invoice #${invoiceNumber}.`,
+                metadata: {
+                    invoiceId,
+                    invoiceNumber,
+                },
+                actionUrl: `/dashboard/invoices/${invoiceId}`,
+                actionText: 'View Invoice',
+            };
+            await this.createNotification(notificationData);
+            console.log(`Invoice creation notification sent to user ${userId}`);
+        }
+        catch (error) {
+            console.error('Failed to send invoice creation notification:', error);
+        }
+    }
+    /**
      * Clean up expired notifications
      */
     async cleanupExpiredNotifications() {

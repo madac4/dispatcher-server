@@ -13,6 +13,7 @@ const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const chat_routes_1 = __importDefault(require("./routes/chat.routes"));
 const contact_routes_1 = __importDefault(require("./routes/contact.routes"));
 const dashboard_routes_1 = __importDefault(require("./routes/dashboard.routes"));
+const invoice_routes_1 = __importDefault(require("./routes/invoice.routes"));
 const notification_routes_1 = __importDefault(require("./routes/notification.routes"));
 const order_routes_1 = __importDefault(require("./routes/order.routes"));
 const settings_routes_1 = __importDefault(require("./routes/settings.routes"));
@@ -53,23 +54,11 @@ app.use('/api/dashboard', jsonParser, dashboard_routes_1.default);
 app.use('/api/authorization', jsonParser, auth_routes_1.default);
 app.use('/api/settings', jsonParser, settings_routes_1.default);
 app.use('/api/trailers', jsonParser, trailer_routes_1.default);
+app.use('/api/invoices', jsonParser, invoice_routes_1.default);
 app.use('/api/contact', jsonParser, contact_routes_1.default);
 app.use('/api/trucks', jsonParser, truck_routes_1.default);
 app.use('/api/orders', jsonParser, order_routes_1.default);
 app.use('/api/chat', jsonParser, chat_routes_1.default);
-// app.use(
-// 	'/api/settings',
-// 	(req, res, next) => {
-// 		if (
-// 			req.path.includes('/files') &&
-// 			(req.method === 'POST' || req.method === 'PUT')
-// 		) {
-// 			return next()
-// 		}
-// 		return jsonParser(req, res, next)
-// 	},
-// 	SettingsRoutes,
-// )
 app.use(ErrorHandler_1.globalErrorHandler);
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);

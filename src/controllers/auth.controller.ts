@@ -1,12 +1,12 @@
 import crypto from 'crypto'
 import { NextFunction, Request, Response } from 'express'
 import jwt from 'jsonwebtoken'
-import transporter from '../config/nodemailer'
 import { decodeToken } from '../middleware/authMiddleware'
 import RefreshToken from '../models/refresh-token.model'
 import ResetToken from '../models/reset-token.model'
 import User from '../models/user.model'
 import { AuthService } from '../services/auth.service'
+import { EmailService } from '../services/email.service'
 import {
 	ConfirmEmailRequest,
 	ForgotPasswordRequest,
@@ -21,7 +21,6 @@ import {
 import { SuccessResponse } from '../types/response.types'
 import { ChangePasswordRequest } from '../types/user'
 import { CatchAsyncErrors, ErrorHandler } from '../utils/ErrorHandler'
-import renderEmail from '../utils/renderEmail'
 import { validatePassword } from '../utils/validators'
 
 export const register = CatchAsyncErrors(
@@ -180,17 +179,16 @@ export const forgotPassword = CatchAsyncErrors(
 		await resetTokenDoc.save()
 
 		try {
-			const html = await renderEmail('forgotPasswordEmail', {
-				resetToken,
-				frontendOrigin: process.env.FRONTEND_ORIGIN,
-			})
-			await transporter.sendMail({
-				from: `Click Permit <${process.env.ADMIN_EMAIL}>`,
-				to: email,
-				subject: 'Reset Your Click Permit Password',
-				html,
-			})
-		} catch (error) {
+			await EmailService.sendEmail(
+				'forgotPasswordEmail',
+				{
+					resetToken,
+					frontendOrigin: process.env.FRONTEND_ORIGIN,
+				},
+				email,
+				`Reset Your Click Permit Password`,
+			)
+		} catch (error: any) {
 			await resetTokenDoc.deleteOne()
 			return next(new ErrorHandler('Failed to send reset email', 500))
 		}
