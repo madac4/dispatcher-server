@@ -255,7 +255,7 @@ export const createInvoice = CatchAsyncErrors(
 
 		res.status(201).json(
 			SuccessResponse(
-				invoice,
+				savedInvoice,
 				'Invoice created successfully and email sent',
 			),
 		)
@@ -419,11 +419,35 @@ export const deleteInvoice = CatchAsyncErrors(
 	async (req: Request, res: Response, next: NextFunction): Promise<void> => {
 		const { id } = req.params
 
-		const invoice = await Invoice.findByIdAndDelete(id)
+		// Get invoice before deleting to access order information
+		const invoice = await Invoice.findById(id)
 
 		if (!invoice) {
 			return next(new ErrorHandler('Invoice not found', 404))
 		}
+
+		// Extract order numbers from the invoice
+		const orderNumbers = invoice.orders.map(order => order.orderNumber)
+
+		// Revert orders status from REQUIRES_CHARGE back to REQUIRES_INVOICE
+		if (orderNumbers.length > 0) {
+			try {
+				await Order.updateMany(
+					{
+						userId: invoice.userId,
+						orderNumber: { $in: orderNumbers },
+						status: OrderStatus.REQUIRES_CHARGE,
+					},
+					{ $set: { status: OrderStatus.REQUIRES_INVOICE } },
+				)
+			} catch (error: any) {
+				console.error('Failed to revert orders status:', error)
+				// Continue with deletion even if status update fails
+			}
+		}
+
+		// Delete the invoice
+		await Invoice.findByIdAndDelete(id)
 
 		res.status(200).json(
 			SuccessResponse(null, 'Invoice deleted successfully'),
@@ -479,6 +503,8 @@ export const sendInvoiceEmail = CatchAsyncErrors(
 export const downloadInvoice = CatchAsyncErrors(
 	async (req: Request, res: Response, next: NextFunction): Promise<void> => {
 		const { id } = req.params
+		const userRole = req.user.role
+		const currentUserId = req.user.userId || req.user.id
 
 		const invoice = await Invoice.findById(id).lean()
 
@@ -486,6 +512,12 @@ export const downloadInvoice = CatchAsyncErrors(
 			return next(new ErrorHandler('Invoice not found', 404))
 		}
 
+		// If user is not admin, only allow access to their own invoices
+		if (userRole !== UserRole.ADMIN && invoice.userId !== currentUserId) {
+			return next(new ErrorHandler('Access denied', 403))
+		}
+
+		let browser: any = null
 		try {
 			// Generate HTML for invoice
 			const html = generateInvoiceHTML(invoice)
@@ -494,7 +526,7 @@ export const downloadInvoice = CatchAsyncErrors(
 			const puppeteer = await import('puppeteer')
 
 			// Launch browser
-			const browser = await puppeteer.default.launch({
+			browser = await puppeteer.default.launch({
 				headless: true,
 				args: ['--no-sandbox', '--disable-setuid-sandbox'],
 			})
@@ -517,6 +549,7 @@ export const downloadInvoice = CatchAsyncErrors(
 			})
 
 			await browser.close()
+			browser = null
 
 			// Set headers for PDF response
 			res.setHeader('Content-Type', 'application/pdf')
@@ -528,6 +561,14 @@ export const downloadInvoice = CatchAsyncErrors(
 			res.send(pdf)
 		} catch (error: any) {
 			console.error('PDF generation error:', error)
+			// Ensure browser is closed even if an error occurs
+			if (browser) {
+				try {
+					await browser.close()
+				} catch (closeError: any) {
+					console.error('Error closing browser:', closeError)
+				}
+			}
 			return next(
 				new ErrorHandler(
 					`Failed to generate PDF: ${error.message}`,

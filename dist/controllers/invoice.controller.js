@@ -205,7 +205,7 @@ exports.createInvoice = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, ne
     catch (error) {
         console.error('Failed to send invoice notification:', error);
     }
-    res.status(201).json((0, response_types_1.SuccessResponse)(invoice, 'Invoice created successfully and email sent'));
+    res.status(201).json((0, response_types_1.SuccessResponse)(savedInvoice, 'Invoice created successfully and email sent'));
 });
 exports.getInvoiceById = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const { id } = req.params;
@@ -311,10 +311,29 @@ exports.updateInvoice = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, ne
 // Delete invoice (admin only)
 exports.deleteInvoice = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const { id } = req.params;
-    const invoice = await invoice_model_1.default.findByIdAndDelete(id);
+    // Get invoice before deleting to access order information
+    const invoice = await invoice_model_1.default.findById(id);
     if (!invoice) {
         return next(new ErrorHandler_1.ErrorHandler('Invoice not found', 404));
     }
+    // Extract order numbers from the invoice
+    const orderNumbers = invoice.orders.map(order => order.orderNumber);
+    // Revert orders status from REQUIRES_CHARGE back to REQUIRES_INVOICE
+    if (orderNumbers.length > 0) {
+        try {
+            await order_model_1.default.updateMany({
+                userId: invoice.userId,
+                orderNumber: { $in: orderNumbers },
+                status: order_types_1.OrderStatus.REQUIRES_CHARGE,
+            }, { $set: { status: order_types_1.OrderStatus.REQUIRES_INVOICE } });
+        }
+        catch (error) {
+            console.error('Failed to revert orders status:', error);
+            // Continue with deletion even if status update fails
+        }
+    }
+    // Delete the invoice
+    await invoice_model_1.default.findByIdAndDelete(id);
     res.status(200).json((0, response_types_1.SuccessResponse)(null, 'Invoice deleted successfully'));
 });
 // Send invoice email (admin only)
@@ -347,17 +366,24 @@ exports.sendInvoiceEmail = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res,
 // Download invoice as PDF
 exports.downloadInvoice = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, next) => {
     const { id } = req.params;
+    const userRole = req.user.role;
+    const currentUserId = req.user.userId || req.user.id;
     const invoice = await invoice_model_1.default.findById(id).lean();
     if (!invoice) {
         return next(new ErrorHandler_1.ErrorHandler('Invoice not found', 404));
     }
+    // If user is not admin, only allow access to their own invoices
+    if (userRole !== auth_types_1.UserRole.ADMIN && invoice.userId !== currentUserId) {
+        return next(new ErrorHandler_1.ErrorHandler('Access denied', 403));
+    }
+    let browser = null;
     try {
         // Generate HTML for invoice
         const html = generateInvoiceHTML(invoice);
         // Import puppeteer dynamically
         const puppeteer = await Promise.resolve().then(() => __importStar(require('puppeteer')));
         // Launch browser
-        const browser = await puppeteer.default.launch({
+        browser = await puppeteer.default.launch({
             headless: true,
             args: ['--no-sandbox', '--disable-setuid-sandbox'],
         });
@@ -376,6 +402,7 @@ exports.downloadInvoice = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, 
             },
         });
         await browser.close();
+        browser = null;
         // Set headers for PDF response
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="Invoice-${invoice.invoiceNumber}.pdf"`);
@@ -383,6 +410,15 @@ exports.downloadInvoice = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res, 
     }
     catch (error) {
         console.error('PDF generation error:', error);
+        // Ensure browser is closed even if an error occurs
+        if (browser) {
+            try {
+                await browser.close();
+            }
+            catch (closeError) {
+                console.error('Error closing browser:', closeError);
+            }
+        }
         return next(new ErrorHandler_1.ErrorHandler(`Failed to generate PDF: ${error.message}`, 500));
     }
 });
