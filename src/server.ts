@@ -14,6 +14,7 @@ import OrderRoutes from './routes/order.routes'
 import SettingsRoutes from './routes/settings.routes'
 import TrailerRoutes from './routes/trailer.routes'
 import TruckRoutes from './routes/truck.routes'
+import UserRoutes from './routes/user.routes'
 import { initGridFS } from './services/gridfs.service'
 import { socketService } from './services/socket.service'
 import { globalErrorHandler } from './utils/ErrorHandler'
@@ -65,6 +66,7 @@ app.use('/api/contact', jsonParser, ContactRoutes)
 app.use('/api/trucks', jsonParser, TruckRoutes)
 app.use('/api/orders', jsonParser, OrderRoutes)
 app.use('/api/chat', jsonParser, ChatRoutes)
+app.use('/api/users', jsonParser, UserRoutes)
 
 app.use(globalErrorHandler)
 
