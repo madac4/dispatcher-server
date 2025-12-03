@@ -300,15 +300,38 @@ export class NotificationService {
 		query: PaginationQuery,
 	): Promise<PaginatedModel<NotificationDTO>> {
 		try {
-			const { unreadOnly, page, limit } = query
+			const { unreadOnly, page, limit, status, type, startDate, endDate } = query
 
 			const filter: any = { recipientId: userId }
-			if (unreadOnly) filter.status = NotificationStatus.UNREAD
+			
+			if (unreadOnly) {
+				filter.status = NotificationStatus.UNREAD
+			} else if (status) {
+				filter.status = status
+			}
+			
+			if (type) {
+				filter.type = type
+			}
+			
+			if (startDate || endDate) {
+				filter.createdAt = {}
+				if (startDate) {
+					filter.createdAt.$gte = new Date(startDate as string)
+				}
+				if (endDate) {
+					// Set end date to end of day
+					const end = new Date(endDate as string)
+					end.setHours(23, 59, 59, 999)
+					filter.createdAt.$lte = end
+				}
+			}
 
 			const skip = (page - 1) * limit
 
 			const notifications = await Notification.find(filter)
 				.populate('senderId', 'email')
+				.sort({ createdAt: -1 })
 				.skip(skip)
 				.limit(limit)
 				.lean()

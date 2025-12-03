@@ -200,13 +200,33 @@ class NotificationService {
     }
     async getUserNotifications(userId, query) {
         try {
-            const { unreadOnly, page, limit } = query;
+            const { unreadOnly, page, limit, status, type, startDate, endDate } = query;
             const filter = { recipientId: userId };
-            if (unreadOnly)
+            if (unreadOnly) {
                 filter.status = notification_types_1.NotificationStatus.UNREAD;
+            }
+            else if (status) {
+                filter.status = status;
+            }
+            if (type) {
+                filter.type = type;
+            }
+            if (startDate || endDate) {
+                filter.createdAt = {};
+                if (startDate) {
+                    filter.createdAt.$gte = new Date(startDate);
+                }
+                if (endDate) {
+                    // Set end date to end of day
+                    const end = new Date(endDate);
+                    end.setHours(23, 59, 59, 999);
+                    filter.createdAt.$lte = end;
+                }
+            }
             const skip = (page - 1) * limit;
             const notifications = await notification_model_1.default.find(filter)
                 .populate('senderId', 'email')
+                .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
                 .lean();

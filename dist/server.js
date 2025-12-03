@@ -19,6 +19,7 @@ const order_routes_1 = __importDefault(require("./routes/order.routes"));
 const settings_routes_1 = __importDefault(require("./routes/settings.routes"));
 const trailer_routes_1 = __importDefault(require("./routes/trailer.routes"));
 const truck_routes_1 = __importDefault(require("./routes/truck.routes"));
+const user_routes_1 = __importDefault(require("./routes/user.routes"));
 const gridfs_service_1 = require("./services/gridfs.service");
 const socket_service_1 = require("./services/socket.service");
 const ErrorHandler_1 = require("./utils/ErrorHandler");
@@ -59,6 +60,7 @@ app.use('/api/contact', jsonParser, contact_routes_1.default);
 app.use('/api/trucks', jsonParser, truck_routes_1.default);
 app.use('/api/orders', jsonParser, order_routes_1.default);
 app.use('/api/chat', jsonParser, chat_routes_1.default);
+app.use('/api/users', jsonParser, user_routes_1.default);
 app.use(ErrorHandler_1.globalErrorHandler);
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);

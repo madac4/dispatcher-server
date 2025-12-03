@@ -18,6 +18,10 @@ export const getNotifications = CatchAsyncErrors(
 			limit: payload.limit || 20,
 			unreadOnly: payload.unreadOnly || false,
 			search: payload.search || '',
+			status: payload.status,
+			type: payload.type,
+			startDate: payload.startDate,
+			endDate: payload.endDate,
 		}
 
 		const result = await notificationService.getUserNotifications(

@@ -11,6 +11,10 @@ exports.getNotifications = (0, ErrorHandler_1.CatchAsyncErrors)(async (req, res)
         limit: payload.limit || 20,
         unreadOnly: payload.unreadOnly || false,
         search: payload.search || '',
+        status: payload.status,
+        type: payload.type,
+        startDate: payload.startDate,
+        endDate: payload.endDate,
     };
     const result = await notification_service_1.notificationService.getUserNotifications(userId, query);
     res.status(200).json(result);
